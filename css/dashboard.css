@@ -1,0 +1,191 @@
+body {
+    min-height: 100vh;
+    display: flex;
+}
+
+.sidebar {
+    min-width: 250px;
+    max-width: 350px;
+    background-color: #0d6efd;
+    color: white;
+    transition: all 0.3s;
+}
+
+.sidebar.collapsed {
+    min-width: 70px;
+    max-width: 70px;
+}
+
+.sidebar .nav-link {
+    color: white;
+    white-space: nowrap;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(255,255,255,0.2);
+}
+
+.sidebar .nav-link.active {
+    background-color: rgba(255,255,255,0.3);
+}
+
+.sidebar .nav-link .label {
+    transition: opacity 0.3s;
+}
+
+.sidebar.collapsed .nav-link .label {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sidebar .toggle-btn {
+    cursor: pointer;
+    padding: 10px;
+    display: flex;
+    justify-content: flex-end;
+    color: white;
+}
+
+.sidebar.collapsed .toggle-btn {
+    justify-content: center;
+}
+
+.content {
+    flex: 1;
+    padding: 20px;
+    background-color: #f8f9fa;
+    transition: margin-left 0.3s;
+}
+
+.nav-link.active {
+    background-color: #0d6efd; /* Warna biru Bootstrap */
+    color: white !important;
+    border-radius: 5px;
+}
+
+.nav-link.active i {
+    color: white !important;
+}
+
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* --- Tambahan CSS Profil Sidebar --- */
+.user-profile {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.profile-img {
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    background-color: white; /* Antisipasi jika background foto transparan */
+}
+
+/* Saat sidebar dikecilkan */
+.sidebar.collapsed .profile-img {
+    width: 40px !important;
+    height: 40px !important;
+}
+
+.sidebar.collapsed .user-profile .label {
+    opacity: 0;
+    height: 0;
+    pointer-events: none;
+    margin: 0 !important;
+    overflow: hidden;
+}
+
+.sidebar.collapsed hr.label {
+    display: none;
+}
+
+/* --- Modifikasi Tabel Heatmap --- */
+.heatmap-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.heatmap-table tbody tr:hover {
+    background-color: #f8f9fa; /* Efek hover abu-abu muda standar di bagian yang tidak di-heatmap */
+}
+
+.heatmap-table td, .heatmap-table th {
+    vertical-align: middle; /* Memastikan teks selalu berada di tengah secara vertikal */
+}
+
+/* Tracker / Stepper UI (Wrapped Grid Style) */
+.tracker-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px 5px; /* Jarak antar baris 15px, antar kolom 5px */
+    width: 100%;
+}
+
+.tracker-item {
+    position: relative;
+    width: calc(100% / 6 - 5px); /* Menampilkan maks 6 item sebaris */
+    min-width: 65px; /* Menjaga agar tidak terlalu kecil di layar HP */
+    text-align: center;
+    z-index: 1;
+}
+
+/* Styling Ikon yang Sedang Aktif (Current) */
+.tracker-item.current {
+    z-index: 2; /* Memastikan efek glow tidak tertumpuk garis */
+}
+
+/* Garis penghubung otomatis (menghilang di akhir baris) */
+.tracker-item::after {
+    content: '';
+    position: absolute;
+    top: 15px; /* Setengah tinggi tracker-dot */
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: #dee2e6;
+    z-index: -1;
+}
+.tracker-item:last-child::after {
+    display: none; /* Sembunyikan garis di item paling terakhir */
+}
+
+.tracker-dot {
+    width: 30px;
+    height: 30px;
+    background: #fff;
+    border: 2px solid #dee2e6;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: #adb5bd;
+    transition: all 0.3s ease;
+}
+
+.tracker-item.current .tracker-dot {
+    transform: scale(1.4); /* Dibuat lebih besar dari sebelumnya */
+    border-color: #0d6efd;
+    background: #0d6efd;
+    color: #fff;
+    box-shadow: 0 0 0 5px rgba(13, 110, 253, 0.25); /* Efek cincin pendar/glow */
+}
+
+/* Pastikan teks label dari ikon yang sedang aktif juga lebih bold */
+.tracker-item.current .tracker-label {
+    color: #0d6efd;
+    font-weight: 800;
+}
+
+.tracker-item.active .tracker-dot { background: #0d6efd; border-color: #0d6efd; color: #fff; }
+.tracker-item.current.active .tracker-dot { background: #0d6efd; color: #fff; }
+.tracker-label { font-size: 0.65rem; font-weight: 600; color: #6c757d; white-space: nowrap; line-height: 1; }
+.tracker-date { font-size: 0.55rem; color: #0d6efd; margin-top: 4px; min-height: 12px; }

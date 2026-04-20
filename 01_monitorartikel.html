@@ -1,0 +1,137 @@
+<div class="row align-items-end mb-4 border-bottom pb-3">
+    <div class="col-md-6">
+        <h2 class="fw-bold text-primary mb-1"><i class="bi bi-journal-bookmark-fill me-2"></i>Monitoring Artikel</h2>
+        <p class="text-muted mb-0">Pantau progres, rekam jejak, dan kelola publikasi artikel Anda dengan mudah!</p>
+    </div>
+    <div class="col-md-6 text-md-end mt-3 mt-md-0">
+        <div class="d-flex justify-content-md-end gap-2 align-items-center">
+            <select id="filterTahunArtikel" class="form-select form-select-sm shadow-sm" style="width: 120px;">
+                <option value="Semua">Semua Tahun</option>
+                <option value="2026" selected>2026</option>
+                <option value="2025">2025</option>
+            </select>
+            <button class="btn btn-outline-secondary btn-sm shadow-sm" id="btnRefreshArtikel" title="Refresh Data">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button class="btn btn-primary btn-sm shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalFormArtikel">
+                <i class="bi bi-plus-circle me-1"></i> Tambah Data
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3" id="containerListArtikel">
+    <div class="col-12 text-center py-5" id="loadingArtikelState">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Memuat data artikel...</p>
+    </div>
+    
+    <div class="col-12 text-center py-5 d-none" id="emptyArtikelState">
+        <i class="bi bi-folder2-open text-secondary mb-3" style="font-size: 4rem; opacity: 0.5;"></i>
+        <h5 class="text-muted fw-bold">Tidak ada data artikel yang di-submit.</h5>
+        <p class="text-secondary small">Klik tombol 'Tambah Data' di kanan atas untuk mulai memonitor publikasi Anda.</p>
+    </div>
+    
+    <div id="listArtikelData" class="row g-3 w-100 m-0"></div>
+</div>
+
+<div class="modal fade" id="modalFormArtikel" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="modalLabel"><i class="bi bi-file-earmark-plus me-2"></i>Form Data Artikel</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form id="formArtikel">
+                    <input type="hidden" id="recordId" name="recordId">
+                    
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white fw-bold text-secondary">1. Identitas Artikel</div>
+                        <div class="card-body row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Judul Artikel <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="judulArtikel" rows="2" required placeholder="Masukkan judul artikel..."></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Tahun Target Publikasi <span class="text-danger">*</span></label>
+                                <select class="form-select" id="tahunTarget" required>
+                                    <option value="" disabled selected>Pilih Tahun...</option>
+                                    <option value="2026">2026</option>
+                                    <option value="2027">2027</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Rencana Submit <span class="text-danger">*</span></label>
+                                <select class="form-select" id="rencanaSubmit" required>
+                                    <option value="" disabled selected>Pilih Tipe...</option>
+                                    <option value="Jurnal">Jurnal</option>
+                                    <option value="Prosiding">Prosiding</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Target Indeksasi <span class="text-danger">*</span></label>
+                                <select class="form-select" id="targetIndeksasi" required disabled>
+                                    <option value="">Pilih Rencana Submit Dulu</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Nama Jurnal / Prosiding Target</label>
+                                <input type="text" class="form-control" id="namaJurnal" placeholder="Opsional (Misal: IEEE Access, ISPRS, dll.)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white fw-bold text-secondary d-flex justify-content-between align-items-center">
+                            <span>2. Daftar Penulis (Internal Departemen)</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddAuthor"><i class="bi bi-person-plus me-1"></i>Tambah Penulis</button>
+                        </div>
+                        <div class="card-body">
+                            <div id="authorContainer" class="d-flex flex-column gap-2">
+                                </div>
+                            <hr>
+                            <div class="card border-0 shadow-sm mb-3">
+                                <div class="card-header bg-white fw-bold text-secondary d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-mortarboard me-2"></i>Keterlibatan Mahasiswa (Opsional)</span>
+                                    <button type="button" class="btn btn-sm btn-outline-success" id="btnAddStudent"><i class="bi bi-person-plus me-1"></i>Tambah Mahasiswa</button>
+                                </div>
+                                <div class="card-body">
+                                    <div id="studentContainer" class="d-flex flex-column gap-2">
+                                        </div>
+                                    <div id="emptyStudentText" class="text-muted small text-center mt-2">
+                                        Belum ada mahasiswa yang ditambahkan.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white fw-bold text-secondary">3. Status Saat Ini</div>
+                        <div class="card-body row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Status Terkini <span class="text-danger">*</span></label>
+                                <select class="form-select border-primary" id="statusTerkini" required disabled>
+                                    <option value="">Pilih Rencana Submit Dulu</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 d-none" id="containerUrlPublish">
+                                <label class="form-label fw-semibold text-success">URL Artikel Publish <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control border-success" id="urlPublish" placeholder="https://doi.org/...">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Catatan / Kendala</label>
+                                <textarea class="form-control" id="catatanKendala" rows="3" placeholder="Opsional (Misal: Menunggu dana proofread, revisi minor reviewer 1, dll)"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary fw-bold" id="btnSimpanArtikel"><i class="bi bi-save me-1"></i>Simpan Data</button>
+            </div>
+        </div>
+    </div>
+</div>

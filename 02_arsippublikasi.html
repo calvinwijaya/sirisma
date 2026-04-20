@@ -1,0 +1,72 @@
+<div class="row align-items-end mb-4 border-bottom pb-3">
+    <div class="col-md-6">
+        <h2 class="fw-bold text-success mb-1"><i class="bi bi-check2-all me-2"></i>Artikel Terbit</h2>
+        <p class="text-muted mb-0">Arsip rekam jejak publikasi artikel Anda yang telah diterbitkan.</p>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body bg-light rounded">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group input-group-sm shadow-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="searchArsip" class="form-control border-start-0" placeholder="Cari Judul Artikel atau Jurnal...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select id="filterTipeArsip" class="form-select form-select-sm shadow-sm">
+                    <option value="Semua">Semua Jenis Publikasi</option>
+                    <option value="Jurnal">Jurnal</option>
+                    <option value="Prosiding">Prosiding</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="filterTahunArsip" class="form-select form-select-sm shadow-sm">
+                    <option value="Semua">Semua Tahun</option>
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                </select>
+            </div>
+            <div class="col-md-2 text-end">
+                <button class="btn btn-outline-secondary btn-sm shadow-sm w-100" id="btnRefreshArsip" title="Segarkan Data">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="text-center py-5" id="loadingArsipState">
+            <div class="spinner-border text-success" role="status"></div>
+            <p class="mt-2 text-muted">Memuat arsip publikasi...</p>
+        </div>
+        
+        <div class="text-center py-5 d-none" id="emptyArsipState">
+            <i class="bi bi-inboxes text-secondary mb-3" style="font-size: 4rem; opacity: 0.5;"></i>
+            <h5 class="text-muted fw-bold">Belum ada artikel yang terbit.</h5>
+            <p class="text-secondary small">Artikel akan muncul di sini setelah statusnya diperbarui menjadi 'Published'.</p>
+        </div>
+
+        <div class="table-responsive d-none" id="tableArsipContainer">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+               <thead class="table-light">
+                    <tr>
+                        <th width="5%" class="text-center">No</th>
+                        <th width="25%">Judul Artikel</th>
+                        <th width="15%">Publikasi</th>
+                        <th width="10%" class="text-center">Indeksasi</th>
+                        <th width="15%">Penulis</th>
+                        <th width="15%">Tanggal Publikasi</th>
+                        <th width="10%" class="text-center">Tautan</th>
+                    </tr>
+                </thead>
+                <tbody id="arsipTableBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
