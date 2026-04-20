@@ -8,7 +8,7 @@
     let masterMahasiswaList = [];
     let studentCount = 0;
 
-    const optIndeksasiJurnal = ["Q1", "Q2", "Q3", "Q4", "Sinta 1", "Sinta 2", "Sinta 3", "Sinta 4", "Sinta 5", "Sinta 6"];
+    const optIndeksasiJurnal = ["Q1", "Q2", "Q3", "Q4", "Non-Q", "Sinta 1", "Sinta 2", "Sinta 3", "Sinta 4", "Sinta 5", "Sinta 6", "Non-Sinta"];
     const optIndeksasiProsiding = ["Internasional", "Nasional"];
     const optStatusJurnal = ["Draft", "Draft Ready", "Submitted", "On Review Round 1", "Revision Round 1", "Revision Round 1 Submitted", "On Review Round 2", "Revision Round 2", "Revision Round 2 Submitted", "Accepted", "Copyediting/ Proofread", "Published"];
     const optStatusProsiding = ["Draft", "Draft Ready", "Submitted", "On Review", "Revision", "Revision Submitted", "Accepted", "Presented", "Published"];
