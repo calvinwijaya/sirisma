@@ -320,7 +320,7 @@
             
             // Menggabungkan Simbol Mata Uang dengan Nominal Format
             let apcVal = document.getElementById('j_apc').value.trim();
-            if(apcVal) apcVal = document.getElementById('j_currency').value + ' ' + apcVal;
+            if(apcVal) apcVal = document.getElementById('j_currency').value + apcVal;
 
             values = [
                 document.getElementById('j_tipe').value, document.getElementById('j_indeks').value,
@@ -336,7 +336,7 @@
 
             // Menggabungkan Simbol Mata Uang dengan Nominal Format
             let feeVal = document.getElementById('p_fee').value.trim();
-            if(feeVal) feeVal = document.getElementById('p_currency').value + ' ' + feeVal;
+            if(feeVal) feeVal = document.getElementById('p_currency').value + feeVal;
 
             values = [
                 document.getElementById('p_tipe').value, document.getElementById('p_batas').value,
