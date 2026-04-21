@@ -8,8 +8,14 @@
     let masterMahasiswaList = [];
     let studentCount = 0;
 
-    const optIndeksasiJurnal = ["Q1", "Q2", "Q3", "Q4", "Non-Q", "Sinta 1", "Sinta 2", "Sinta 3", "Sinta 4", "Sinta 5", "Sinta 6", "Non-Sinta"];
-    const optIndeksasiProsiding = ["Internasional", "Nasional"];
+    const optIndeksasiJurnal = [
+        "Q1 - Skor SINTA 40", "Q2 - Skor SINTA 24", "Q3 - Skor SINTA 22", "Q4 - Skor SINTA 20", "Non-Q - Skor SINTA 30", 
+        "Sinta 1 - Skor SINTA 25", "Sinta 2 - Skor SINTA 25", "Sinta 3 - Skor SINTA 20", "Sinta 4 - Skor SINTA 20", 
+        "Sinta 5 - Skor SINTA 15", "Sinta 6 - Skor SINTA 15", "Non-Sinta - Skor SINTA 10"
+    ];
+    const optIndeksasiProsiding = [
+        "Internasional - Skor SINTA 30", "Nasional - Skor SINTA 10"
+    ];
     const optStatusJurnal = ["Draft", "Draft Ready", "Submitted", "On Review Round 1", "Revision Round 1", "Revision Round 1 Submitted", "On Review Round 2", "Revision Round 2", "Revision Round 2 Submitted", "Accepted", "Copyediting/ Proofread", "Published"];
     const optStatusProsiding = ["Draft", "Draft Ready", "Submitted", "On Review", "Revision", "Revision Submitted", "Accepted", "Presented", "Published"];
     const optPeranAuthor = ["First Author", "Corresponding Author", "Co-Author"];
@@ -261,7 +267,28 @@
             steps.forEach(s => { if(row[s.index]) tglUpdate = String(row[s.index]).split(" ")[0]; });
 
             const typeColor = type === "Jurnal" ? "bg-primary" : "bg-success";
-            const indexColor = String(row[7]).includes("Q") ? "bg-warning text-dark" : "bg-info text-dark";
+            
+            // LOGIKA PEMISAHAN SKOR SINTA & INDEKS
+            let indeksFull = String(row[7] || "");
+            let displayIndeks = indeksFull;
+            let skorSinta = "-";
+
+            // Jika data baru (mengandung kata "Skor SINTA")
+            if (indeksFull.includes(" - Skor SINTA ")) {
+                let parts = indeksFull.split(" - Skor SINTA ");
+                displayIndeks = parts[0];
+                skorSinta = parts[1];
+            } else {
+                // Retro-compatibility (agar data lama yang belum ada skornya tetap terisi otomatis)
+                const scoreMap = {
+                    "Q1": "40", "Q2": "24", "Q3": "22", "Q4": "20", "Non-Q": "30",
+                    "Sinta 1": "25", "Sinta 2": "25", "Sinta 3": "20", "Sinta 4": "20", "Sinta 5": "15", "Sinta 6": "15", "Non-Sinta": "10",
+                    "Internasional": "30", "Nasional": "10"
+                };
+                skorSinta = scoreMap[indeksFull] || "-";
+            }
+
+            const indexColor = displayIndeks.includes("Q") ? "bg-warning text-dark" : "bg-info text-dark";
 
             const canEditDelete = (row[3] === activeUser.email || activeUser.role === "Admin");
             const actionButtons = canEditDelete ? `
@@ -277,10 +304,13 @@
                         <div class="row g-0">
                             <div class="col-md-5 p-4 border-end bg-white position-relative">
                                 ${actionButtons}
-                                <div class="d-flex gap-2 mb-2">
+                                
+                                <div class="d-flex flex-wrap gap-2 mb-2 pe-5">
                                     <span class="badge ${typeColor} font-monospace">${type}</span>
-                                    <span class="badge ${indexColor}">${row[7]}</span>
+                                    <span class="badge ${indexColor}">${displayIndeks}</span>
+                                    <span class="badge bg-secondary border border-secondary shadow-sm"><i class="bi bi-star-fill text-warning me-1"></i>Estimasi Skor SINTA: ${skorSinta}</span>
                                 </div>
+                                
                                 <h5 class="fw-bold text-dark mb-1 pe-5">${row[4]}</h5>
                                 <p class="text-secondary small mb-3"><i class="bi bi-bank me-1"></i>${row[8] || "Target belum ditentukan"}</p>
                                 <div class="row g-1 small">

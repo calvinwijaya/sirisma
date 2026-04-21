@@ -106,6 +106,14 @@
                             <option value="Teknik Geodesi">Geodesi</option>
                         </select>
                     </div>
+                    <div class="d-none" id="adminFilterHomebase">
+                        <select id="filterHomebase" class="form-select form-select-sm border-0 shadow-sm text-secondary fw-semibold">
+                            <option value="">Semua Homebase</option>
+                            <option value="S1">S1 Geodesi</option>
+                            <option value="S2">S2 Geomatika</option>
+                            <option value="S3">S3 Geomatika</option>
+                        </select>
+                    </div>
                     <div>
                         <select id="filterBulan" class="form-select form-select-sm border-0 shadow-sm text-secondary fw-semibold">
                             <option value="">Semua Bulan</option>
@@ -133,11 +141,49 @@
                         </div>
                     </div>
                 </div>
+                
                 <div class="col-lg-8">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-body">
-                            <h6 class="card-title fw-bold text-primary text-center bg-primary bg-opacity-10 py-2 rounded mb-3">Tren Publikasi (Jurnal vs Prosiding)</h6>
-                            <canvas id="chartTrend" style="max-height: 250px;"></canvas>
+                    <div class="row g-3 h-100">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0 bg-primary text-white h-100" style="background: linear-gradient(45deg, #0d6efd, #0b5ed7);">
+                                <div class="card-body d-flex justify-content-between align-items-center py-4">
+                                    <div>
+                                        <h6 class="mb-1 text-white-50 text-uppercase fw-bold" style="letter-spacing: 1px;">SINTA Score Overall (Departemen)</h6>
+                                        <h1 class="display-5 fw-bolder mb-0" id="scoreDeptBase">0</h1>
+                                        <div class="mt-2 text-warning fw-bold bg-white bg-opacity-25 d-inline-block px-3 py-1 rounded-pill" style="font-size: 0.9rem;" id="scoreDeptAdd">
+                                            <i class="bi bi-graph-up-arrow me-1"></i> +0 Potensi Tambahan
+                                        </div>
+                                    </div>
+                                    <i class="bi bi-award-fill" style="font-size: 4rem; opacity: 0.3;"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card shadow-sm border-0 h-100 border-bottom border-4 border-info bg-light">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="text-muted fw-bold mb-2">S1 Teknik Geodesi</h6>
+                                    <h2 class="fw-bolder text-dark mb-0" id="scoreS1Base">0</h2>
+                                    <span class="badge bg-success mt-2 fs-6 shadow-sm" id="scoreS1Add">+0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card shadow-sm border-0 h-100 border-bottom border-4 border-warning bg-light">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="text-muted fw-bold mb-2">S2 Teknik Geomatika</h6>
+                                    <h2 class="fw-bolder text-dark mb-0" id="scoreS2Base">0</h2>
+                                    <span class="badge bg-success mt-2 fs-6 shadow-sm" id="scoreS2Add">+0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card shadow-sm border-0 h-100 border-bottom border-4 border-danger bg-light">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="text-muted fw-bold mb-2">S3 Teknik Geomatika</h6>
+                                    <h2 class="fw-bolder text-dark mb-0" id="scoreS3Base">0</h2>
+                                    <span class="badge bg-success mt-2 fs-6 shadow-sm" id="scoreS3Add">+0</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -193,11 +239,12 @@
                                     <thead class="table-light border-bottom border-primary border-2">
                                         <tr>
                                             <th width="5%" class="text-center text-primary fw-bold py-3">No</th>
-                                            <th width="30%" class="text-primary fw-bold py-3">Judul Artikel</th>
-                                            <th width="20%" class="text-primary fw-bold py-3">Nama Jurnal/Prosiding</th>
+                                            <th width="25%" class="text-primary fw-bold py-3">Judul Artikel</th>
+                                            <th width="20%" class="text-primary fw-bold py-3">Submit Ke</th>
+                                            <th width="15%" class="text-primary fw-bold py-3">Estimasi Skor</th>
                                             <th width="15%" class="text-primary fw-bold py-3">Penulis</th>
-                                            <th width="15%" class="text-primary fw-bold py-3">Status</th>
-                                            <th width="15%" class="text-primary fw-bold py-3">Catatan</th>
+                                            <th width="10%" class="text-primary fw-bold py-3">Status</th>
+                                            <th width="10%" class="text-primary fw-bold py-3">Catatan</th>
                                         </tr>
                                     </thead>
                                     <tbody id="listUpdateBody">
@@ -227,13 +274,24 @@
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="text-muted small fw-bold text-uppercase">Target Jurnal/Prosiding</label>
-                            <p id="detTarget" class="text-dark mb-0"></p>
+                            <p id="detTarget" class="text-dark fw-bold mb-0"></p>
                         </div>
                         <div class="col-6">
                             <label class="text-muted small fw-bold text-uppercase">Status Terkini</label>
                             <p id="detStatus" class="mb-0"></p>
                         </div>
                     </div>
+                    <div class="row mb-3 pb-3 border-bottom">
+                        <div class="col-6">
+                            <label class="text-muted small fw-bold text-uppercase">Jenis & Indeksasi</label>
+                            <div id="detIndeksasi" class="mt-1"></div>
+                        </div>
+                        <div class="col-6">
+                            <label class="text-muted small fw-bold text-uppercase">Potensi Skor SINTA</label>
+                            <div id="detSkor" class="mt-1"></div>
+                        </div>
+                    </div>
+                    
                     <div class="mb-3">
                         <label class="text-muted small fw-bold text-uppercase">Daftar Penulis</label>
                         <p id="detPenulis" class="text-danger font-monospace mb-0"></p>
