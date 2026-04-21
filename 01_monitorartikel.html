@@ -50,11 +50,11 @@
                         <div class="card-header bg-white fw-bold text-secondary">1. Identitas Artikel</div>
                         <div class="card-body row g-3">
                             <div class="col-md-12">
-                                <label class="form-label fw-semibold">Judul Artikel <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="judulArtikel" rows="2" required placeholder="Masukkan judul artikel..."></textarea>
+                                <label class="form-label fw-semibold">Judul Artikel / Buku <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="judulArtikel" rows="2" required placeholder="Masukkan judul..."></textarea>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold">Tahun Target Publikasi <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Tahun Target <span class="text-danger">*</span></label>
                                 <select class="form-select" id="tahunTarget" required>
                                     <option value="" disabled selected>Pilih Tahun...</option>
                                     <option value="2026">2026</option>
@@ -62,22 +62,23 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold">Rencana Submit <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Tipe Artikel <span class="text-danger">*</span></label>
                                 <select class="form-select" id="rencanaSubmit" required>
                                     <option value="" disabled selected>Pilih Tipe...</option>
                                     <option value="Jurnal">Jurnal</option>
                                     <option value="Prosiding">Prosiding</option>
+                                    <option value="Buku">Buku</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold">Target Indeksasi <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold">Target Indeksasi/Tipe <span class="text-danger">*</span></label>
                                 <select class="form-select" id="targetIndeksasi" required disabled>
-                                    <option value="">Pilih Rencana Submit Dulu</option>
+                                    <option value="">Pilih Tipe Artikel Dulu</option>
                                 </select>
                             </div>
                             <div class="col-md-12">
-                                <label class="form-label fw-semibold">Nama Jurnal / Prosiding Target</label>
-                                <input type="text" class="form-control" id="namaJurnal" placeholder="Opsional (Misal: IEEE Access, ISPRS, dll.)">
+                                <label class="form-label fw-semibold">Nama Jurnal / Prosiding / Publisher Target</label>
+                                <input type="text" class="form-control" id="namaJurnal" placeholder="Opsional (Misal: IEEE, UGM Press, Springer, dll.)">
                             </div>
                         </div>
                     </div>

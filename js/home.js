@@ -151,11 +151,12 @@ function processAndRenderDashboard() {
     const dosenMap = {};
     masterDosenList.forEach(d => { dosenMap[d.kode] = d; });
 
-    // Retro-compatibility Score Map
+    // Retro-compatibility Score Map (KINI DENGAN BUKU)
     const scoreMap = {
         "Q1": 40, "Q2": 24, "Q3": 22, "Q4": 20, "Non-Q": 30,
         "Sinta 1": 25, "Sinta 2": 25, "Sinta 3": 20, "Sinta 4": 20, "Sinta 5": 15, "Sinta 6": 15, "Non-Sinta": 10,
-        "Internasional": 30, "Nasional": 10
+        "Internasional": 30, "Nasional": 10,
+        "Buku Ajar": 20, "Buku Referensi": 40, "Buku Monograf": 20 // TAMBAHAN BUKU
     };
 
     let sintaAdditional = { S1: 0, S2: 0, S3: 0 };
@@ -163,6 +164,13 @@ function processAndRenderDashboard() {
     let authorCounts = {};
     let indexCounts = {};
     let mhsCounts = { "Melibatkan Mhs.": 0, "Dosen Mandiri": 0 };
+
+    // PERBAIKAN CHART TREND (Tambah Buku)
+    let trendCounts = { 
+        "Jurnal": { "01":0, "02":0, "03":0, "04":0, "05":0, "06":0, "07":0, "08":0, "09":0, "10":0, "11":0, "12":0 },
+        "Prosiding": { "01":0, "02":0, "03":0, "04":0, "05":0, "06":0, "07":0, "08":0, "09":0, "10":0, "11":0, "12":0 },
+        "Buku": { "01":0, "02":0, "03":0, "04":0, "05":0, "06":0, "07":0, "08":0, "09":0, "10":0, "11":0, "12":0 }
+    };
 
     let filteredData = dashboardMasterData.filter(row => {
         const tglInputStr = String(row[2]); 
@@ -206,17 +214,20 @@ function processAndRenderDashboard() {
         // =====================================
         // KALKULASI SKOR SINTA PER ARTIKEL
         // =====================================
-        let tipePub = row[6];
+        let tipePub = row[6] || "";
         let indeksFull = String(row[7] || "");
-        let skorSintaNum = 0;
-
-        if (indeksFull.includes(" - Skor SINTA ")) {
-            skorSintaNum = parseInt(indeksFull.split(" - Skor SINTA ")[1]) || 0;
-        } else {
-            skorSintaNum = scoreMap[indeksFull] || 0; // Backup untuk data lama
+        
+        // PERBAIKAN PENTING: Gunakan Kolom AJ (Index 35) lebih dulu. Jika tidak ada, pakai backup Map.
+        let skorSintaNum = parseInt(row[35], 10); 
+        
+        if (isNaN(skorSintaNum) || skorSintaNum === 0) {
+             if (indeksFull.includes(" - Skor SINTA ")) {
+                 skorSintaNum = parseInt(indeksFull.split(" - Skor SINTA ")[1]) || 0;
+             } else {
+                 skorSintaNum = scoreMap[indeksFull] || 0; // Backup untuk data lama dan buku
+             }
         }
 
-        // Menentukan ke mana skor dialokasikan berdasarkan homebase penulis
         let involvedHomebases = new Set();
         authorCodes.forEach(kode => {
             if(dosenMap[kode] && dosenMap[kode].homebase) {
@@ -224,24 +235,28 @@ function processAndRenderDashboard() {
             }
         });
 
-        // Tambahkan atribut custom ke row agar mudah dibaca di fungsi table
         row.involvedHomebases = Array.from(involvedHomebases);
         row.skorSintaNum = skorSintaNum;
 
-        // Hitung akumulasi
         involvedHomebases.forEach(hb => {
             if(sintaAdditional[hb] !== undefined) sintaAdditional[hb] += skorSintaNum;
         });
 
         // =====================================
-        // KALKULASI CHART (Status, Index, dsb)
+        // KALKULASI CHART (Status, Index, Tren)
         // =====================================
         statusCounts[row[11] || "Unknown"] = (statusCounts[row[11] || "Unknown"] || 0) + 1;
         
+        // Chart Trend Data Entry
+        if(rowBulan && trendCounts[tipePub]) {
+            trendCounts[tipePub][rowBulan]++;
+        }
+
         let indeksChart = row[7] || "Unknown";
-        if(indeksChart.includes(" - ")) indeksChart = indeksChart.split(" - ")[0]; // Hilangkan teks Sinta di Chart
+        if(indeksChart.includes(" - ")) indeksChart = indeksChart.split(" - ")[0]; 
         if (indeksChart === "Nasional") indeksChart = "Prosiding Nasional";
         if (indeksChart === "Internasional") indeksChart = "Prosiding Internasional";
+        // Buku tidak perlu diubah, biarkan "Buku Ajar", dll.
         indexCounts[indeksChart] = (indexCounts[indeksChart] || 0) + 1;
 
         if (isExecutive) {
@@ -256,7 +271,6 @@ function processAndRenderDashboard() {
         return true;
     });
 
-    // Update Scorecard SINTA UI
     document.getElementById("scoreS1Base").textContent = sintaBaseScores.S1.toLocaleString('id-ID');
     document.getElementById("scoreS2Base").textContent = sintaBaseScores.S2.toLocaleString('id-ID');
     document.getElementById("scoreS3Base").textContent = sintaBaseScores.S3.toLocaleString('id-ID');
@@ -270,11 +284,11 @@ function processAndRenderDashboard() {
     document.getElementById("scoreDeptBase").textContent = totalDeptBase.toLocaleString('id-ID');
     document.getElementById("scoreDeptAdd").innerHTML = `<i class="bi bi-graph-up-arrow me-1"></i> +${totalDeptAdd} Potensi Tambahan`;
 
-    // Render Ulang Tabel & Grafik
     renderTableUpdate(filteredData);
     
     Object.keys(chartInstances).forEach(key => { if(chartInstances[key]) chartInstances[key].destroy(); });
     renderChartStatus(statusCounts);
+    renderChartTrend(trendCounts); // Panggil fungsi yang diperbarui
     
     if (isExecutive) {
         renderTableAuthorshipHeatmap(authorCounts); 
@@ -302,11 +316,20 @@ function renderTableUpdate(data) {
         
         let tipePub = row[6] || "";
         let indeksText = row[7] ? row[7].split(" - ")[0] : "";
+        
+        // Penyesuaian teks badge Jenis Publikasi
         if (tipePub === "Prosiding") {
             if (indeksText === "Internasional" || indeksText === "Prosiding Internasional") indeksText = "Internasional";
             if (indeksText === "Nasional" || indeksText === "Prosiding Nasional") indeksText = "Nasional";
+        } else if (tipePub === "Buku") {
+            // Untuk buku, kata "Buku " sudah ada di indeksText (misal: "Buku Ajar"). 
+            // Jadi tipePub "Buku" tidak perlu diulang.
+            tipePub = ""; 
         }
-        let jenisText = `<span class="badge bg-secondary font-monospace fw-normal">${tipePub} ${indeksText}</span>`;
+        
+        // Rangkai teks badge agar rapi (misal: "Jurnal Q1", "Prosiding Nasional", "Buku Ajar")
+        let textToShow = (tipePub + " " + indeksText).trim();
+        let jenisText = `<span class="badge bg-secondary font-monospace fw-normal">${textToShow}</span>`;
 
         let badgeSkorHtml = "";
         if (row.skorSintaNum > 0 && row.involvedHomebases && row.involvedHomebases.length > 0) {
@@ -351,8 +374,12 @@ window.showDetailArtikel = function(recordId) {
     if (tipePub === "Prosiding") {
         if (indeksText === "Internasional" || indeksText === "Prosiding Internasional") indeksText = "Internasional";
         if (indeksText === "Nasional" || indeksText === "Prosiding Nasional") indeksText = "Nasional";
+    } else if (tipePub === "Buku") {
+        tipePub = ""; // Hilangkan duplikasi kata "Buku"
     }
-    document.getElementById("detIndeksasi").innerHTML = `<span class="badge bg-secondary font-monospace fw-normal fs-6 shadow-sm">${tipePub} ${indeksText}</span>`;
+    
+    let textToShow = (tipePub + " " + indeksText).trim();
+    document.getElementById("detIndeksasi").innerHTML = `<span class="badge bg-secondary font-monospace fw-normal fs-6 shadow-sm">${textToShow}</span>`;
 
     // Injeksi Skor SINTA per Homebase
     let badgeSkorHtml = "";
@@ -441,11 +468,52 @@ function renderTableAuthorshipHeatmap(dataObj) {
     });
 }
 
+function renderChartTrend(dataObj) {
+    const ctx = document.getElementById('chartTrend');
+    if(!ctx) return;
+
+    chartInstances['trend'] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'],
+            datasets: [
+                { 
+                    label: 'Jurnal', 
+                    data: Object.values(dataObj["Jurnal"] || {}), 
+                    backgroundColor: '#4e73df', // Biru
+                    borderRadius: 3 
+                },
+                { 
+                    label: 'Prosiding', 
+                    data: Object.values(dataObj["Prosiding"] || {}), 
+                    backgroundColor: '#1cc88a', // Hijau
+                    borderRadius: 3 
+                },
+                { 
+                    label: 'Buku', 
+                    data: Object.values(dataObj["Buku"] || {}), 
+                    backgroundColor: '#dc3545', // Merah
+                    borderRadius: 3 
+                }
+            ]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false, 
+            plugins: { legend: { position: 'bottom' } },
+            scales: { 
+                x: { stacked: true },
+                y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } } 
+            } 
+        }
+    });
+}
+
 function renderChartIndexation(dataObj) {
     const ctx = document.getElementById('chartIndexation');
     if(!ctx) return;
 
-    const indexOrder = ['Q1', 'Q2', 'Q3', 'Q4', 'Non-Q', 'Sinta 1', 'Sinta 2', 'Sinta 3', 'Sinta 4', 'Sinta 5', 'Sinta 6', 'Non-Sinta', 'Prosiding Internasional', 'Prosiding Nasional'];
+    // Tambahkan opsi buku ke index order
+    const indexOrder = ['Q1', 'Q2', 'Q3', 'Q4', 'Non-Q', 'Sinta 1', 'Sinta 2', 'Sinta 3', 'Sinta 4', 'Sinta 5', 'Sinta 6', 'Non-Sinta', 'Prosiding Internasional', 'Prosiding Nasional', 'Buku Ajar', 'Buku Referensi', 'Buku Monograf'];
     const sortedKeys = Object.keys(dataObj).sort((a,b) => {
         let indexA = indexOrder.indexOf(a); let indexB = indexOrder.indexOf(b);
         if(indexA === -1) indexA = 99; if(indexB === -1) indexB = 99;
@@ -454,6 +522,7 @@ function renderChartIndexation(dataObj) {
     
     const sortedData = sortedKeys.map(k => dataObj[k]);
 
+    // Tambahkan warna tambahan ke palet untuk mengakomodasi Buku
     chartInstances['indexation'] = new Chart(ctx, {
         type: 'doughnut',
         plugins: [ChartDataLabels],
@@ -461,7 +530,7 @@ function renderChartIndexation(dataObj) {
             labels: sortedKeys,
             datasets: [{
                 data: sortedData,
-                backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#20c997', '#0d6efd', '#6610f2', '#6f42c1', '#e83e8c', '#17a2b8', '#adb5bd', '#28a745', '#198754', '#0dcaf0', '#495057']
+                backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#20c997', '#0d6efd', '#6610f2', '#6f42c1', '#e83e8c', '#17a2b8', '#adb5bd', '#28a745', '#198754', '#0dcaf0', '#495057', '#d63384', '#6c757d', '#343a40']
             }]
         },
         options: { 

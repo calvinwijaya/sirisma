@@ -16,6 +16,9 @@
     const optIndeksasiProsiding = [
         "Internasional - Skor SINTA 30", "Nasional - Skor SINTA 10"
     ];
+    const optIndeksasiBuku = [
+        "Buku Ajar - Skor SINTA 20", "Buku Referensi - Skor SINTA 40", "Buku Monograf - Skor SINTA 20"
+    ];
     const optStatusJurnal = ["Draft", "Draft Ready", "Submitted", "On Review Round 1", "Revision Round 1", "Revision Round 1 Submitted", "On Review Round 2", "Revision Round 2", "Revision Round 2 Submitted", "Accepted", "Copyediting/ Proofread", "Published"];
     const optStatusProsiding = ["Draft", "Draft Ready", "Submitted", "On Review", "Revision", "Revision Submitted", "Accepted", "Presented", "Published"];
     const optPeranAuthor = ["First Author", "Corresponding Author", "Co-Author"];
@@ -182,15 +185,17 @@
         const currentUser = JSON.parse(sessionStorage.getItem("user"));
         const recordIdVal = document.getElementById("recordId").value; 
 
-        // EKSTRAK NIU MAHASISWA
         let listMahasiswaNiu = [];
         document.querySelectorAll('.input-mahasiswa').forEach(input => {
             const val = input.value;
-            // Cari objek mahasiswa yang NIM & Namanya persis sama dengan input
             const mhs = masterMahasiswaList.find(m => `${m.nim} - ${m.nama}` === val);
             if (mhs && mhs.niu) listMahasiswaNiu.push(mhs.niu);
         });
-        const stringMahasiswa = listMahasiswaNiu.join(", "); // Hasil: "493101, 493187"
+        const stringMahasiswa = listMahasiswaNiu.join(", "); 
+        const ddlTarget = document.getElementById("targetIndeksasi");
+        const targetFullText = ddlTarget.options[ddlTarget.selectedIndex].text; // Ambil teks asli yang dilihat user
+        const targetShortValue = targetFullText.split(" - ")[0]; // "Q1"
+        const skorSintaNum = targetFullText.includes(" - Skor SINTA ") ? parseInt(targetFullText.split(" - Skor SINTA ")[1]) : 0;
 
         const payloadData = {
             action: "save_artikel",
@@ -199,7 +204,9 @@
             judul: document.getElementById("judulArtikel").value,
             tahunTarget: document.getElementById("tahunTarget").value,
             rencanaSubmit: document.getElementById("rencanaSubmit").value,
-            targetIndeksasi: document.getElementById("targetIndeksasi").value,
+            targetIndeksasi: targetShortValue,
+            skorSinta: skorSintaNum,
+            sumber: "SIRISMA",
             namaJurnal: document.getElementById("namaJurnal").value,
             daftarPenulis: stringPenulis,
             keterlibatanMahasiswa: stringMahasiswa,
@@ -266,26 +273,18 @@
             let tglUpdate = tglInput;
             steps.forEach(s => { if(row[s.index]) tglUpdate = String(row[s.index]).split(" ")[0]; });
 
-            const typeColor = type === "Jurnal" ? "bg-primary" : "bg-success";
+            let typeColor = "bg-primary";
+            if (type === "Prosiding") typeColor = "bg-success";
+            else if (type === "Buku") typeColor = "bg-danger";
             
-            // LOGIKA PEMISAHAN SKOR SINTA & INDEKS
-            let indeksFull = String(row[7] || "");
-            let displayIndeks = indeksFull;
-            let skorSinta = "-";
-
-            // Jika data baru (mengandung kata "Skor SINTA")
-            if (indeksFull.includes(" - Skor SINTA ")) {
-                let parts = indeksFull.split(" - Skor SINTA ");
-                displayIndeks = parts[0];
-                skorSinta = parts[1];
-            } else {
-                // Retro-compatibility (agar data lama yang belum ada skornya tetap terisi otomatis)
-                const scoreMap = {
-                    "Q1": "40", "Q2": "24", "Q3": "22", "Q4": "20", "Non-Q": "30",
-                    "Sinta 1": "25", "Sinta 2": "25", "Sinta 3": "20", "Sinta 4": "20", "Sinta 5": "15", "Sinta 6": "15", "Non-Sinta": "10",
-                    "Internasional": "30", "Nasional": "10"
-                };
-                skorSinta = scoreMap[indeksFull] || "-";
+            let displayIndeks = row[7] || "Unknown";
+            
+            // CARA BENAR MEMBACA SKOR SINTA DARI DATABASE (KOLOM AJ / Indeks 35)
+            let skorSinta = row[35]; 
+            // Jika kosong (karena data lama), cari pakai scoreMap
+            if (!skorSinta || skorSinta === "" || skorSinta === "-") {
+                const scoreMap = { "Q1": 40, "Q2": 24, "Q3": 22, "Q4": 20, "Non-Q": 30, "Sinta 1": 25, "Sinta 2": 25, "Sinta 3": 20, "Sinta 4": 20, "Sinta 5": 15, "Sinta 6": 15, "Non-Sinta": 10, "Internasional": 30, "Nasional": 10, "Buku Ajar": 20, "Buku Referensi": 40, "Buku Monograf": 20 };
+                skorSinta = scoreMap[displayIndeks] || "-";
             }
 
             const indexColor = displayIndeks.includes("Q") ? "bg-warning text-dark" : "bg-info text-dark";
@@ -408,12 +407,13 @@
     function updateDropdownOptions(tipe) {
         const ddlIndeksasi = document.getElementById("targetIndeksasi");
         const ddlStatus = document.getElementById("statusTerkini");
-        ddlIndeksasi.innerHTML = '<option value="" disabled selected>Pilih Indeksasi...</option>';
+        ddlIndeksasi.innerHTML = '<option value="" disabled selected>Pilih Target...</option>';
         ddlStatus.innerHTML = '<option value="" disabled selected>Pilih Status...</option>';
         if(!tipe) { ddlIndeksasi.disabled = true; ddlStatus.disabled = true; return; }
 
         ddlIndeksasi.disabled = false; ddlStatus.disabled = false;
-        let targetIndeksasiList = tipe === "Jurnal" ? optIndeksasiJurnal : optIndeksasiProsiding;
+        
+        let targetIndeksasiList = tipe === "Jurnal" ? optIndeksasiJurnal : (tipe === "Buku" ? optIndeksasiBuku : optIndeksasiProsiding);
         let targetStatusList = tipe === "Jurnal" ? optStatusJurnal : optStatusProsiding;
 
         targetIndeksasiList.forEach(opt => { ddlIndeksasi.innerHTML += `<option value="${opt}">${opt}</option>`; });
@@ -456,15 +456,32 @@
         document.getElementById("tahunTarget").value = row[5];
         document.getElementById("rencanaSubmit").value = row[6];
         
+        // 1. Update dulu isi dropdown berdasarkan tipe (Jurnal/Prosiding/Buku)
         updateDropdownOptions(row[6]);
+
+        // 2. Gunakan timer kecil agar browser selesai merender isi dropdown baru
         setTimeout(() => {
-            document.getElementById("targetIndeksasi").value = row[7];
+            const valFromSheet = String(row[7]).trim(); // Ambil dari Kolom H (misal: "Q1")
+            const ddl = document.getElementById("targetIndeksasi");
+            
+            // Cari opsi yang mengandung teks dari spreadsheet
+            for (let i = 0; i < ddl.options.length; i++) {
+                // Kita potong value di dropdown untuk dibandingkan dengan database
+                const optValueShort = ddl.options[i].value.split(" - ")[0].trim();
+                
+                if (optValueShort === valFromSheet) {
+                    ddl.selectedIndex = i;
+                    break;
+                }
+            }
+
+            // Set status dan URL
             document.getElementById("statusTerkini").value = row[11];
             if (row[11] === "Published") {
                 document.getElementById("containerUrlPublish").classList.remove("d-none");
                 document.getElementById("urlPublish").value = row[12];
             }
-        }, 100);
+        }, 150); // Tambah sedikit jeda agar lebih aman
 
         document.getElementById("namaJurnal").value = row[8];
         document.getElementById("catatanKendala").value = row[34];
