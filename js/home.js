@@ -266,27 +266,44 @@ function renderTableUpdate(data) {
     tbody.innerHTML = "";
 
     if(data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-3 d-block mb-2"></i>Belum ada update artikel.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">Belum ada update artikel.</td></tr>`;
         return;
     }
 
     let latestData = data.slice().reverse().slice(0, 10);
     latestData.forEach((row, index) => {
         let statusBadge = row[11] === "Published" ? "bg-success" : (row[11].includes("Review") ? "bg-warning text-dark" : "bg-primary");
-        // Judul Artikel menjadi fw-normal (tidak bold)
+        
+        // Perhatikan penambahan style="cursor:pointer" dan atribut onclick
         let tr = `
-            <tr class="border-bottom">
+            <tr class="border-bottom" style="cursor: pointer;" onclick="showDetailArtikel('${row[1]}')" title="Klik untuk lihat detail">
                 <td class="text-center text-muted">${index + 1}</td>
                 <td><span class="text-dark">${row[4]}</span></td>
                 <td><span class="small text-secondary"><i class="bi bi-journal-text me-1"></i>${row[8] || "-"}</span></td>
                 <td><code class="text-danger bg-light px-2 py-1 rounded border">${row[9]}</code></td>
                 <td><span class="badge ${statusBadge}">${row[11]}</span></td>
-                <td><span class="small text-muted d-inline-block text-truncate" style="max-width: 150px;" title="${row[34]}">${row[34] || "-"}</span></td>
+                <td><span class="small text-muted d-inline-block text-truncate" style="max-width: 150px;">${row[34] || "-"}</span></td>
             </tr>
         `;
         tbody.insertAdjacentHTML('beforeend', tr);
     });
 }
+
+// Fungsi Baru untuk menampilkan Modal Detail
+window.showDetailArtikel = function(recordId) {
+    const row = dashboardMasterData.find(r => r[1] === recordId);
+    if (!row) return;
+
+    document.getElementById("detJudul").textContent = row[4];
+    document.getElementById("detTarget").textContent = row[8] || "-";
+    document.getElementById("detStatus").innerHTML = `<span class="badge ${row[11] === 'Published' ? 'bg-success' : 'bg-primary'}">${row[11]}</span>`;
+    document.getElementById("detPenulis").textContent = row[9];
+    
+    const catatanArea = document.getElementById("detCatatan");
+    catatanArea.textContent = row[34] || "Tidak ada catatan.";
+
+    new bootstrap.Modal(document.getElementById('modalDetailArtikel')).show();
+};
 
 function renderChartStatus(dataObj) {
     const ctx = document.getElementById('chartStatus');

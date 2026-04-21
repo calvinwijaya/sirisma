@@ -290,6 +290,13 @@
                                     </div>
                                     <div class="col-12"><strong>Penulis:</strong> <code class="text-danger">${row[9]}</code></div>
                                     ${row[12] ? `<div class="col-12 text-truncate mt-1"><strong>URL:</strong> <a href="${row[12]}" target="_blank" class="text-decoration-none">${row[12]}</a></div>` : ''}
+                                    
+                                    <div class="col-12 mt-2 pt-2 border-top">
+                                        <div class="fw-bold text-primary mb-1"><i class="bi bi-chat-left-dots me-1"></i>Catatan:</div>
+                                        <div class="text-muted" style="font-size: 0.8rem; font-style: italic; line-height: 1.4;">
+                                            ${row[34] || "Belum ada catatan."}
+                                        </div>
+                                    </div>
                                 </div>
                                 <hr class="my-3">
                                 <div class="d-flex justify-content-between align-items-center opacity-75" style="font-size: 0.75rem;">
