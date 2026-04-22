@@ -1,10 +1,17 @@
 (function() {
+    // ==========================================
+    // STATE LOKAL
+    // ==========================================
     let masterDosenList = []; 
     let masterArtikelData = []; 
     let authorCount = 0;
-    let extAuthorCount = 0; // Hitungan penulis luar
+    let extAuthorCount = 0;
     let masterMahasiswaList = [];
     let studentCount = 0;
+    
+    // Variabel penahan (Promise) agar tidak fetch berulang kali
+    let dosenPromise = null;
+    let mhsPromise = null;
 
     const optIndeksasiJurnal = ["Q1 - Skor SINTA 40", "Q2 - Skor SINTA 24", "Q3 - Skor SINTA 22", "Q4 - Skor SINTA 20", "Non-Q - Skor SINTA 30", "Sinta 1 - Skor SINTA 25", "Sinta 2 - Skor SINTA 25", "Sinta 3 - Skor SINTA 20", "Sinta 4 - Skor SINTA 20", "Sinta 5 - Skor SINTA 15", "Sinta 6 - Skor SINTA 15", "Non-Sinta - Skor SINTA 10"];
     const optIndeksasiProsiding = ["Internasional - Skor SINTA 30", "Nasional - Skor SINTA 10"];
@@ -14,7 +21,6 @@
     const optStatusProsiding = ["Draft", "Draft Ready", "Submitted", "On Review", "Revision", "Revision Submitted", "Accepted", "Presented", "Published"];
     const optPeranAuthor = ["First Author", "Corresponding Author", "Co-Author"];
 
-    // TIMELINE INDEKS DIGESER +2
     const timelineJurnal = [
         { label: "Draft", index: 15, status: "Draft" }, { label: "Ready", index: 16, status: "Draft Ready" }, { label: "Submit", index: 17, status: "Submitted" },
         { label: "Review 1", index: 18, status: "On Review Round 1" }, { label: "Rev 1", index: 19, status: "Revision Round 1" }, { label: "Rev 1 Sub", index: 20, status: "Revision Round 1 Submitted" },
@@ -52,12 +58,12 @@
 
         document.getElementById("btnAddAuthor")?.addEventListener("click", () => createAuthorRow());
         document.getElementById("btnAddStudent")?.addEventListener("click", () => createStudentRow());
-        // Listener Ext Author
         document.getElementById("btnAddExtAuthor")?.addEventListener("click", () => createExtAuthorRow());
         
         document.getElementById("btnSimpanArtikel")?.addEventListener("click", handleSaveArtikel);
 
-        document.querySelector('[data-bs-target="#modalFormArtikel"]')?.addEventListener("click", () => {
+        // PERBAIKAN: Gunakan ASYNC pada event klik tombol "Tambah Data"
+        document.querySelector('[data-bs-target="#modalFormArtikel"]')?.addEventListener("click", async () => {
             document.getElementById("formArtikel").reset();
             document.getElementById("recordId").value = ""; 
             document.getElementById("authorContainer").innerHTML = ""; 
@@ -66,22 +72,56 @@
             document.getElementById("emptyStudentText").classList.remove("d-none");
             document.getElementById("emptyExtAuthorText").classList.remove("d-none");
             document.getElementById("extHeader").classList.add("d-none");
+            
+            // ANTI RACE-CONDITION: Jika data dosen belum siap, tunggu dulu!
+            if (masterDosenList.length === 0) {
+                document.getElementById("authorContainer").innerHTML = `<div class="text-center text-primary small py-2"><div class="spinner-border spinner-border-sm me-1"></div> Menyiapkan data penulis...</div>`;
+                await fetchDosenList();
+                document.getElementById("authorContainer").innerHTML = ""; // Bersihkan loading
+            }
+
             createAuthorRow(true); 
             updateDropdownOptions(""); 
         });
     }
 
+    // ==========================================
+    // FUNGSI PENGAMBILAN DATA (DENGAN PROMISE)
+    // ==========================================
     function fetchDosenList() {
-        if(typeof GAS_LOGIN === 'undefined') return;
-        fetch(GAS_LOGIN, { method: "POST", body: JSON.stringify({ action: "get_users" }) })
+        if(typeof GAS_LOGIN === 'undefined') return Promise.resolve();
+        if(masterDosenList.length > 0) return Promise.resolve();
+        if(dosenPromise) return dosenPromise; // Cegah double fetch
+
+        dosenPromise = fetch(GAS_LOGIN, { method: "POST", body: JSON.stringify({ action: "get_users" }) })
         .then(res => res.json())
         .then(data => {
             if(data.status === "ok") {
                 masterDosenList = data.user;
-                const authorContainer = document.getElementById("authorContainer");
-                if(authorContainer && authorContainer.children.length === 0) createAuthorRow(true);
             }
         }).catch(err => console.error("Gagal mengambil list dosen:", err));
+
+        return dosenPromise;
+    }
+
+    function fetchMahasiswaList() {
+        if(typeof GAS_MAHASISWA === 'undefined') return Promise.resolve();
+        if(masterMahasiswaList.length > 0) return Promise.resolve();
+        if(mhsPromise) return mhsPromise;
+
+        mhsPromise = fetch(GAS_MAHASISWA)
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === "ok") {
+                masterMahasiswaList = data.data;
+                const datalist = document.createElement('datalist');
+                datalist.id = "mhsDataList";
+                datalist.innerHTML = masterMahasiswaList.map(m => `<option value="${m.nim} - ${m.nama}"></option>`).join("");
+                document.body.appendChild(datalist);
+            }
+        }).catch(err => console.error("Gagal mengambil data mahasiswa:", err));
+
+        return mhsPromise;
     }
 
     function fetchArtikelData() {
@@ -113,22 +153,9 @@
             });
     }
 
-    function fetchMahasiswaList() {
-        if(typeof GAS_MAHASISWA === 'undefined') return;
-        fetch(GAS_MAHASISWA)
-        .then(res => res.json())
-        .then(data => {
-            if(data.status === "ok") {
-                masterMahasiswaList = data.data;
-                const datalist = document.createElement('datalist');
-                datalist.id = "mhsDataList";
-                datalist.innerHTML = masterMahasiswaList.map(m => `<option value="${m.nim} - ${m.nama}"></option>`).join("");
-                document.body.appendChild(datalist);
-            }
-        }).catch(err => console.error("Gagal mengambil data mahasiswa:", err));
-    }
-
-    // CREATE ROWS UI
+    // ==========================================
+    // UI BUILDERS
+    // ==========================================
     window.createExtAuthorRow = function() {
         extAuthorCount++;
         const container = document.getElementById("extAuthorContainer");
@@ -250,7 +277,9 @@
         document.getElementById("urlPublish").removeAttribute("required");
     }
 
-    // SUBMIT DATA
+    // ==========================================
+    // AKSI DATABASE
+    // ==========================================
     function handleSaveArtikel() {
         const form = document.getElementById("formArtikel");
         if (!form.checkValidity()) { form.reportValidity(); return; }
@@ -268,7 +297,6 @@
             if (mhs && mhs.niu) listMahasiswaNiu.push(mhs.niu);
         });
 
-        // KUMPULKAN DATA PENULIS EKSTERNAL
         let listNamaExt = [];
         let listAfilExt = [];
         document.querySelectorAll('.ext-author-item').forEach(item => {
@@ -296,10 +324,8 @@
             namaJurnal: document.getElementById("namaJurnal").value,
             daftarPenulis: listPenulis.join(", "),
             keterlibatanMahasiswa: listMahasiswaNiu.join(", "),
-            // FIELD BARU
             penulisLuar: listNamaExt.join("|"),
             afiliasiLuar: listAfilExt.join("|"),
-            
             statusTerkini: document.getElementById("statusTerkini").value,
             urlPublish: document.getElementById("urlPublish").value,
             catatan: document.getElementById("catatanKendala").value,
@@ -319,7 +345,6 @@
         }).catch(err => { Swal.fire('Error!', 'Terjadi kesalahan komunikasi server.', 'error'); });
     }
 
-    // HAPUS & EDIT
     window.deleteArtikel = function(recordId) {
         Swal.fire({
             title: 'Hapus Artikel?', text: "Data akan dihapus permanen!", icon: 'warning',
@@ -337,9 +362,14 @@
         });
     };
 
-    window.editArtikel = function(recordId) {
+    // PERBAIKAN: Gunakan ASYNC agar aman saat Edit data jika list Dosen belum ada
+    window.editArtikel = async function(recordId) {
         const row = masterArtikelData.find(r => r[1] === recordId);
         if (!row) return;
+
+        // Anti Race-Condition
+        if (masterDosenList.length === 0) await fetchDosenList();
+        if (masterMahasiswaList.length === 0) await fetchMahasiswaList();
 
         document.getElementById("recordId").value = row[1];
         document.getElementById("judulArtikel").value = row[4];
@@ -357,17 +387,16 @@
                 }
             }
 
-            document.getElementById("statusTerkini").value = row[13]; // STATUS GESER KE INDEX 13
+            document.getElementById("statusTerkini").value = row[13];
             if (row[13] === "Published") {
                 document.getElementById("containerUrlPublish").classList.remove("d-none");
-                document.getElementById("urlPublish").value = row[14]; // URL GESER KE INDEX 14
+                document.getElementById("urlPublish").value = row[14]; 
             }
         }, 150);
 
         document.getElementById("namaJurnal").value = row[8];
-        document.getElementById("catatanKendala").value = row[36]; // CATATAN GESER KE INDEX 36
+        document.getElementById("catatanKendala").value = row[36]; 
 
-        // Set Authors
         document.getElementById("authorContainer").innerHTML = ""; 
         const authors = String(row[9]).split(", ");
         authors.forEach(authorText => {
@@ -379,7 +408,6 @@
             lastRow.querySelector('.select-peran-author').value = isCorr ? "Corresponding Author" : "Co-Author"; 
         });
 
-        // Set Mahasiswa
         document.getElementById("studentContainer").innerHTML = ""; 
         const mhsSaved = String(row[10]).split(",").map(s => s.trim()).filter(s => s);
         if (mhsSaved.length > 0) {
@@ -396,7 +424,6 @@
             document.getElementById("emptyStudentText").classList.remove("d-none");
         }
 
-        // Set Penulis Luar (INDEX 11 & 12)
         document.getElementById("extAuthorContainer").innerHTML = "";
         const extNames = String(row[11]).split("|").map(s => s.trim()).filter(s => s);
         const extAfils = String(row[12]).split("|").map(s => s.trim()).filter(s => s);
@@ -418,7 +445,9 @@
         new bootstrap.Modal(document.getElementById('modalFormArtikel')).show();
     };
 
+    // ==========================================
     // RENDER CARDS
+    // ==========================================
     function renderArtikelCards(data) {
         const container = document.getElementById("listArtikelData");
         const filterTahunEl = document.getElementById("filterTahunArtikel");
@@ -429,7 +458,7 @@
         container.innerHTML = "";
 
         let filteredData = data.filter(row => {
-            if (row[13] === "Published") return false; // INDEX 13
+            if (row[13] === "Published") return false;
             if (filterTahun !== "Semua" && String(row[5]) !== filterTahun) return false;
             
             const isAdminExec = ["Admin", "Kadep", "Sekdep"].includes(activeUser.role);
@@ -450,7 +479,7 @@
         filteredData.reverse().forEach(row => {
             const type = row[6];
             const steps = type === "Jurnal" ? timelineJurnal : timelineProsiding;
-            const currentStatus = row[13]; // STATUS GESER 13
+            const currentStatus = row[13]; 
             const tglInput = row[2] ? String(row[2]).split(" ")[0] : "-";
             
             let tglUpdate = tglInput;
@@ -459,7 +488,7 @@
             let typeColor = type === "Prosiding" ? "bg-success" : (type === "Buku" ? "bg-danger" : "bg-primary");
             let displayIndeks = row[7] || "Unknown";
             
-            let skorSinta = row[37]; // SKOR GESER KE 37 (AL)
+            let skorSinta = row[37]; 
             if (!skorSinta || skorSinta === "" || skorSinta === "-") {
                 const scoreMap = { "Q1": 40, "Q2": 24, "Q3": 22, "Q4": 20, "Non-Q": 30, "Sinta 1": 25, "Sinta 2": 25, "Sinta 3": 20, "Sinta 4": 20, "Sinta 5": 15, "Sinta 6": 15, "Non-Sinta": 10, "Internasional": 30, "Nasional": 10, "Buku Ajar": 20, "Buku Referensi": 40, "Buku Monograf": 20 };
                 skorSinta = scoreMap[displayIndeks] || "-";
@@ -468,7 +497,6 @@
             const indexColor = displayIndeks.includes("Q") ? "bg-warning text-dark" : "bg-info text-dark";
             const canEditDelete = (row[3] === activeUser.email || activeUser.role === "Admin");
 
-            // Format Tampilan Ext Author untuk Card
             let extAuthorHtml = "";
             const extNames = String(row[11]).split("|").filter(s => s);
             if(extNames.length > 0) {
