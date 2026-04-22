@@ -109,12 +109,11 @@ async function fetchAllData() {
         if (resSinta && resSinta.values) {
             const sintaRows = resSinta.values.slice(1);
             sintaRows.forEach(row => {
-                // FILTER SPESIFIK: Hanya memproses baris milik Universitas Gadjah Mada
                 const universitas = row[0] ? String(row[0]).trim().toLowerCase() : "";
                 
                 if (universitas.includes("gadjah mada")) {
                     const jenjang = row[2] ? String(row[2]).trim().toUpperCase() : "";
-                    const scoreStr = String(row[3]).replace(/[^0-9]/g, ''); // Buang semua karakter selain angka
+                    const scoreStr = String(row[3]).replace(/[^0-9]/g, ''); 
                     const score = parseInt(scoreStr, 10) || 0;
                     
                     if(jenjang === "S1") sintaBaseScores.S1 = score;
@@ -151,12 +150,11 @@ function processAndRenderDashboard() {
     const dosenMap = {};
     masterDosenList.forEach(d => { dosenMap[d.kode] = d; });
 
-    // Retro-compatibility Score Map (KINI DENGAN BUKU)
     const scoreMap = {
         "Q1": 40, "Q2": 24, "Q3": 22, "Q4": 20, "Non-Q": 30,
         "Sinta 1": 25, "Sinta 2": 25, "Sinta 3": 20, "Sinta 4": 20, "Sinta 5": 15, "Sinta 6": 15, "Non-Sinta": 10,
         "Internasional": 30, "Nasional": 10,
-        "Buku Ajar": 20, "Buku Referensi": 40, "Buku Monograf": 20 // TAMBAHAN BUKU
+        "Buku Ajar": 20, "Buku Referensi": 40, "Buku Monograf": 20 
     };
 
     let sintaAdditional = { S1: 0, S2: 0, S3: 0 };
@@ -165,7 +163,6 @@ function processAndRenderDashboard() {
     let indexCounts = {};
     let mhsCounts = { "Melibatkan Mhs.": 0, "Dosen Mandiri": 0 };
 
-    // PERBAIKAN CHART TREND (Tambah Buku)
     let trendCounts = { 
         "Jurnal": { "01":0, "02":0, "03":0, "04":0, "05":0, "06":0, "07":0, "08":0, "09":0, "10":0, "11":0, "12":0 },
         "Prosiding": { "01":0, "02":0, "03":0, "04":0, "05":0, "06":0, "07":0, "08":0, "09":0, "10":0, "11":0, "12":0 },
@@ -217,14 +214,14 @@ function processAndRenderDashboard() {
         let tipePub = row[6] || "";
         let indeksFull = String(row[7] || "");
         
-        // PERBAIKAN PENTING: Gunakan Kolom AJ (Index 35) lebih dulu. Jika tidak ada, pakai backup Map.
-        let skorSintaNum = parseInt(row[35], 10); 
+        // PERBAIKAN INDEX: Skor SINTA bergeser ke Index 37 (AL)
+        let skorSintaNum = parseInt(row[37], 10); 
         
         if (isNaN(skorSintaNum) || skorSintaNum === 0) {
              if (indeksFull.includes(" - Skor SINTA ")) {
                  skorSintaNum = parseInt(indeksFull.split(" - Skor SINTA ")[1]) || 0;
              } else {
-                 skorSintaNum = scoreMap[indeksFull] || 0; // Backup untuk data lama dan buku
+                 skorSintaNum = scoreMap[indeksFull] || 0; 
              }
         }
 
@@ -243,11 +240,11 @@ function processAndRenderDashboard() {
         });
 
         // =====================================
-        // KALKULASI CHART (Status, Index, Tren)
+        // KALKULASI CHART (Status, Index, dsb)
         // =====================================
-        statusCounts[row[11] || "Unknown"] = (statusCounts[row[11] || "Unknown"] || 0) + 1;
+        // PERBAIKAN INDEX: Status Terkini bergeser ke Index 13 (N)
+        statusCounts[row[13] || "Unknown"] = (statusCounts[row[13] || "Unknown"] || 0) + 1;
         
-        // Chart Trend Data Entry
         if(rowBulan && trendCounts[tipePub]) {
             trendCounts[tipePub][rowBulan]++;
         }
@@ -256,7 +253,6 @@ function processAndRenderDashboard() {
         if(indeksChart.includes(" - ")) indeksChart = indeksChart.split(" - ")[0]; 
         if (indeksChart === "Nasional") indeksChart = "Prosiding Nasional";
         if (indeksChart === "Internasional") indeksChart = "Prosiding Internasional";
-        // Buku tidak perlu diubah, biarkan "Buku Ajar", dll.
         indexCounts[indeksChart] = (indexCounts[indeksChart] || 0) + 1;
 
         if (isExecutive) {
@@ -288,7 +284,7 @@ function processAndRenderDashboard() {
     
     Object.keys(chartInstances).forEach(key => { if(chartInstances[key]) chartInstances[key].destroy(); });
     renderChartStatus(statusCounts);
-    renderChartTrend(trendCounts); // Panggil fungsi yang diperbarui
+    renderChartTrend(trendCounts); 
     
     if (isExecutive) {
         renderTableAuthorshipHeatmap(authorCounts); 
@@ -312,22 +308,19 @@ function renderTableUpdate(data) {
 
     let latestData = data.slice().reverse().slice(0, 10);
     latestData.forEach((row, index) => {
-        let statusBadge = row[11] === "Published" ? "bg-success" : (row[11].includes("Review") ? "bg-warning text-dark" : "bg-primary");
+        // PERBAIKAN INDEX: Status Terkini bergeser ke 13 (N)
+        let statusBadge = row[13] === "Published" ? "bg-success" : (row[13].includes("Review") ? "bg-warning text-dark" : "bg-primary");
         
         let tipePub = row[6] || "";
         let indeksText = row[7] ? row[7].split(" - ")[0] : "";
         
-        // Penyesuaian teks badge Jenis Publikasi
         if (tipePub === "Prosiding") {
             if (indeksText === "Internasional" || indeksText === "Prosiding Internasional") indeksText = "Internasional";
             if (indeksText === "Nasional" || indeksText === "Prosiding Nasional") indeksText = "Nasional";
         } else if (tipePub === "Buku") {
-            // Untuk buku, kata "Buku " sudah ada di indeksText (misal: "Buku Ajar"). 
-            // Jadi tipePub "Buku" tidak perlu diulang.
             tipePub = ""; 
         }
         
-        // Rangkai teks badge agar rapi (misal: "Jurnal Q1", "Prosiding Nasional", "Buku Ajar")
         let textToShow = (tipePub + " " + indeksText).trim();
         let jenisText = `<span class="badge bg-secondary font-monospace fw-normal">${textToShow}</span>`;
 
@@ -340,6 +333,7 @@ function renderTableUpdate(data) {
             badgeSkorHtml = `<span class="text-muted small">-</span>`;
         }
         
+        // PERBAIKAN INDEX: Catatan bergeser ke 36 (AK)
         let tr = `
             <tr class="border-bottom" style="cursor: pointer;" onclick="showDetailArtikel('${row[1]}')" title="Klik untuk lihat detail">
                 <td class="text-center text-muted">${index + 1}</td>
@@ -350,8 +344,8 @@ function renderTableUpdate(data) {
                 </td>
                 <td class="align-middle">${badgeSkorHtml}</td>
                 <td><code class="text-danger bg-light px-2 py-1 rounded border">${row[9]}</code></td>
-                <td><span class="badge ${statusBadge}">${row[11]}</span></td>
-                <td><span class="small text-muted d-inline-block text-truncate" style="max-width: 120px;">${row[34] || "-"}</span></td>
+                <td><span class="badge ${statusBadge}">${row[13]}</span></td>
+                <td><span class="small text-muted d-inline-block text-truncate" style="max-width: 120px;">${row[36] || "-"}</span></td>
             </tr>
         `;
         tbody.insertAdjacentHTML('beforeend', tr);
@@ -363,25 +357,24 @@ window.showDetailArtikel = function(recordId) {
     const row = dashboardMasterData.find(r => r[1] === recordId);
     if (!row) return;
 
+    // PERBAIKAN INDEX DI MODAL
     document.getElementById("detJudul").textContent = row[4];
     document.getElementById("detTarget").textContent = row[8] || "-";
-    document.getElementById("detStatus").innerHTML = `<span class="badge ${row[11] === 'Published' ? 'bg-success' : 'bg-primary'}">${row[11]}</span>`;
+    document.getElementById("detStatus").innerHTML = `<span class="badge ${row[13] === 'Published' ? 'bg-success' : 'bg-primary'}">${row[13]}</span>`;
     document.getElementById("detPenulis").textContent = row[9];
     
-    // Injeksi Jenis & Indeksasi
     let tipePub = row[6] || "";
     let indeksText = row[7] ? row[7].split(" - ")[0] : "";
     if (tipePub === "Prosiding") {
         if (indeksText === "Internasional" || indeksText === "Prosiding Internasional") indeksText = "Internasional";
         if (indeksText === "Nasional" || indeksText === "Prosiding Nasional") indeksText = "Nasional";
     } else if (tipePub === "Buku") {
-        tipePub = ""; // Hilangkan duplikasi kata "Buku"
+        tipePub = ""; 
     }
     
     let textToShow = (tipePub + " " + indeksText).trim();
     document.getElementById("detIndeksasi").innerHTML = `<span class="badge bg-secondary font-monospace fw-normal fs-6 shadow-sm">${textToShow}</span>`;
 
-    // Injeksi Skor SINTA per Homebase
     let badgeSkorHtml = "";
     if (row.skorSintaNum > 0 && row.involvedHomebases && row.involvedHomebases.length > 0) {
         row.involvedHomebases.forEach(hb => {
@@ -392,8 +385,9 @@ window.showDetailArtikel = function(recordId) {
     }
     document.getElementById("detSkor").innerHTML = badgeSkorHtml;
 
+    // PERBAIKAN INDEX: Catatan
     const catatanArea = document.getElementById("detCatatan");
-    catatanArea.textContent = row[34] || "Tidak ada catatan / kendala khusus yang dilaporkan.";
+    catatanArea.textContent = row[36] || "Tidak ada catatan / kendala khusus yang dilaporkan.";
 
     new bootstrap.Modal(document.getElementById('modalDetailArtikel')).show();
 };
@@ -512,7 +506,6 @@ function renderChartIndexation(dataObj) {
     const ctx = document.getElementById('chartIndexation');
     if(!ctx) return;
 
-    // Tambahkan opsi buku ke index order
     const indexOrder = ['Q1', 'Q2', 'Q3', 'Q4', 'Non-Q', 'Sinta 1', 'Sinta 2', 'Sinta 3', 'Sinta 4', 'Sinta 5', 'Sinta 6', 'Non-Sinta', 'Prosiding Internasional', 'Prosiding Nasional', 'Buku Ajar', 'Buku Referensi', 'Buku Monograf'];
     const sortedKeys = Object.keys(dataObj).sort((a,b) => {
         let indexA = indexOrder.indexOf(a); let indexB = indexOrder.indexOf(b);
@@ -522,7 +515,6 @@ function renderChartIndexation(dataObj) {
     
     const sortedData = sortedKeys.map(k => dataObj[k]);
 
-    // Tambahkan warna tambahan ke palet untuk mengakomodasi Buku
     chartInstances['indexation'] = new Chart(ctx, {
         type: 'doughnut',
         plugins: [ChartDataLabels],
