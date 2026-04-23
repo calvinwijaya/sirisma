@@ -349,7 +349,10 @@ function displayTablePage(page) {
 
         let badgeSkorHtml = "";
         if (row.skorSintaNum > 0 && row.involvedHomebases && row.involvedHomebases.length > 0) {
-            row.involvedHomebases.forEach(hb => {
+            // PERBAIKAN: Tambahkan .sort() agar urut S1, S2, S3
+            let sortedHomebases = row.involvedHomebases.sort();
+            
+            sortedHomebases.forEach(hb => {
                 badgeSkorHtml += `<span class="badge bg-success mb-1 me-1 shadow-sm">${hb}: +${row.skorSintaNum}</span><br>`;
             });
         } else {
