@@ -465,7 +465,10 @@ window.showDetailArtikel = function(recordId) {
     // Injeksi Skor SINTA per Homebase
     let badgeSkorHtml = "";
     if (row.skorSintaNum > 0 && row.involvedHomebases && row.involvedHomebases.length > 0) {
-        row.involvedHomebases.forEach(hb => {
+        // PERBAIKAN: Tambahkan .sort() di sini juga
+        let sortedHomebases = row.involvedHomebases.sort();
+        
+        sortedHomebases.forEach(hb => {
             badgeSkorHtml += `<span class="badge bg-success me-1 mb-1 fs-6 shadow-sm"><i class="bi bi-graph-up-arrow me-1"></i>${hb}: +${row.skorSintaNum}</span> `;
         });
     } else {
