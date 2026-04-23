@@ -437,16 +437,16 @@ window.changePage = function(pageNumber) {
 };
 
 // Menampilkan Modal Detail (Global)
+// Menampilkan Modal Detail (Global)
 window.showDetailArtikel = function(recordId) {
     const row = dashboardMasterData.find(r => r[1] === recordId);
     if (!row) return;
 
-    // PERBAIKAN INDEX DI MODAL
     document.getElementById("detJudul").textContent = row[4];
     document.getElementById("detTarget").textContent = row[8] || "-";
     document.getElementById("detStatus").innerHTML = `<span class="badge ${row[13] === 'Published' ? 'bg-success' : 'bg-primary'}">${row[13]}</span>`;
-    document.getElementById("detPenulis").textContent = row[9];
     
+    // Injeksi Jenis & Indeksasi
     let tipePub = row[6] || "";
     let indeksText = row[7] ? row[7].split(" - ")[0] : "";
     if (tipePub === "Prosiding") {
@@ -459,17 +459,64 @@ window.showDetailArtikel = function(recordId) {
     let textToShow = (tipePub + " " + indeksText).trim();
     document.getElementById("detIndeksasi").innerHTML = `<span class="badge bg-secondary font-monospace fw-normal fs-6 shadow-sm">${textToShow}</span>`;
 
+    // Injeksi Skor SINTA per Homebase
     let badgeSkorHtml = "";
     if (row.skorSintaNum > 0 && row.involvedHomebases && row.involvedHomebases.length > 0) {
         row.involvedHomebases.forEach(hb => {
-            badgeSkorHtml += `<span class="badge bg-success me-1 fs-6 shadow-sm"><i class="bi bi-graph-up-arrow me-1"></i>${hb}: +${row.skorSintaNum}</span> `;
+            badgeSkorHtml += `<span class="badge bg-success me-1 mb-1 fs-6 shadow-sm"><i class="bi bi-graph-up-arrow me-1"></i>${hb}: +${row.skorSintaNum}</span> `;
         });
     } else {
         badgeSkorHtml = `<span class="text-muted small">-</span>`;
     }
     document.getElementById("detSkor").innerHTML = badgeSkorHtml;
 
-    // PERBAIKAN INDEX: Catatan
+    // ==========================================
+    // INJEKSI GRUP PENULIS
+    // ==========================================
+    
+    // A. Internal (Dosen) - Index 9
+    let internalHtml = "";
+    const intAuthors = String(row[9]).split(",").map(s => s.trim()).filter(s => s);
+    if (intAuthors.length > 0) {
+        internalHtml = intAuthors.map(kode => {
+            // Beri warna merah dan tebal jika dia Corresponding Author (*)
+            if (kode.includes("*")) return `<span class="text-danger fw-bold">${kode}</span>`;
+            return `<span>${kode}</span>`;
+        }).join(", ");
+    } else {
+        internalHtml = `<span class="text-muted fst-italic">-</span>`;
+    }
+    document.getElementById("detPenulisInternal").innerHTML = internalHtml;
+
+    // B. Mahasiswa - Index 10
+    let mhsHtml = "";
+    const mhsNius = String(row[10]).split(",").map(s => s.trim()).filter(s => s);
+    if (mhsNius.length > 0) {
+        mhsHtml = mhsNius.map(niu => `<span class="bg-white border rounded px-1 me-1">${niu}</span>`).join(" ");
+    } else {
+        mhsHtml = `<span class="text-muted fst-italic">Tidak melibatkan mahasiswa</span>`;
+    }
+    document.getElementById("detPenulisMahasiswa").innerHTML = mhsHtml;
+
+    // C. Eksternal - Index 11 (Nama) & 12 (Afiliasi)
+    let extHtml = "";
+    const extNames = String(row[11]).split("|").map(s => s.trim()).filter(s => s);
+    const extAfils = String(row[12]).split("|").map(s => s.trim()).filter(s => s);
+    
+    if (extNames.length > 0) {
+        // Buat list ul/li agar rapi jika penulis luarnya banyak
+        extHtml = `<ul class="mb-0 ps-3">`;
+        for (let i = 0; i < extNames.length; i++) {
+            let afiliasi = extAfils[i] ? ` <span class="text-muted fw-normal">(${extAfils[i]})</span>` : "";
+            extHtml += `<li>${extNames[i]}${afiliasi}</li>`;
+        }
+        extHtml += `</ul>`;
+    } else {
+        extHtml = `<span class="text-muted fst-italic">-</span>`;
+    }
+    document.getElementById("detPenulisEksternal").innerHTML = extHtml;
+
+    // Catatan Kendala
     const catatanArea = document.getElementById("detCatatan");
     catatanArea.textContent = row[36] || "Tidak ada catatan / kendala khusus yang dilaporkan.";
 

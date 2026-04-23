@@ -291,7 +291,7 @@
                             <p id="detStatus" class="mb-0"></p>
                         </div>
                     </div>
-                    <div class="row mb-3 pb-3 border-bottom">
+                   <div class="row mb-3 pb-3 border-bottom">
                         <div class="col-6">
                             <label class="text-muted small fw-bold text-uppercase">Jenis & Indeksasi</label>
                             <div id="detIndeksasi" class="mt-1"></div>
@@ -303,8 +303,21 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="text-muted small fw-bold text-uppercase">Daftar Penulis</label>
-                        <p id="detPenulis" class="text-danger font-monospace mb-0"></p>
+                        <label class="text-muted small fw-bold text-uppercase mb-2">Daftar Penulis & Kontributor</label>
+                        <div class="bg-light p-3 rounded border shadow-sm">
+                            <div class="mb-2">
+                                <span class="fw-bold text-primary"><i class="bi bi-person-badge me-2"></i>A. Internal (Dosen):</span>
+                                <div id="detPenulisInternal" class="text-dark font-monospace small ms-4 mt-1"></div>
+                            </div>
+                            <div class="mb-2">
+                                <span class="fw-bold text-success"><i class="bi bi-mortarboard me-2"></i>B. Mahasiswa:</span>
+                                <div id="detPenulisMahasiswa" class="text-dark font-monospace small ms-4 mt-1"></div>
+                            </div>
+                            <div class="mb-0">
+                                <span class="fw-bold text-secondary"><i class="bi bi-globe me-2"></i>C. Eksternal:</span>
+                                <div id="detPenulisEksternal" class="text-dark font-monospace small ms-4 mt-1"></div>
+                            </div>
+                        </div>
                     </div>
                     <hr>
                     <div class="mb-0">
