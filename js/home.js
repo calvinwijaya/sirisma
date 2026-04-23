@@ -3,6 +3,10 @@ let dashboardMasterData = [];
 let masterDosenList = []; 
 let chartInstances = {}; 
 
+let currentPage = 1;
+const rowsPerPage = 10; 
+let currentFilteredData = [];
+
 // Konfigurasi Database SINTA
 const SINTA_API_KEY = "AIzaSyA3Pgj8HMdb4ak9jToAiTQV0XFdmgvoYPI";
 const SINTA_SHEET_ID = "1TEiYtyDVfb_du4I5fNroaLEa3zk2JRyi8jup7n5DKD4";
@@ -298,17 +302,36 @@ function processAndRenderDashboard() {
 // ==========================================
 
 function renderTableUpdate(data) {
+    // Simpan data yang difilter ke variabel global agar bisa dipakai fungsi paginasi
+    currentFilteredData = data.slice().reverse(); 
+    
+    // Reset ke halaman 1 setiap kali filter berubah
+    currentPage = 1; 
+    
+    displayTablePage(currentPage);
+}
+
+// Fungsi baru khusus untuk menampilkan data per halaman
+function displayTablePage(page) {
     const tbody = document.getElementById("listUpdateBody");
     tbody.innerHTML = "";
 
-    if(data.length === 0) {
+    if (currentFilteredData.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted">Belum ada update artikel.</td></tr>`;
+        document.getElementById("paginationInfo").textContent = "Menampilkan 0 dari 0 data";
+        document.getElementById("paginationControls").innerHTML = "";
         return;
     }
 
-    let latestData = data.slice().reverse().slice(0, 10);
-    latestData.forEach((row, index) => {
-        // PERBAIKAN INDEX: Status Terkini bergeser ke 13 (N)
+    // Hitung index awal dan akhir
+    const startIndex = (page - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const pageData = currentFilteredData.slice(startIndex, endIndex);
+
+    pageData.forEach((row, idx) => {
+        // Nomor urut aslinya berlanjut melintasi halaman
+        const actualRowNumber = startIndex + idx + 1; 
+        
         let statusBadge = row[13] === "Published" ? "bg-success" : (row[13].includes("Review") ? "bg-warning text-dark" : "bg-primary");
         
         let tipePub = row[6] || "";
@@ -333,10 +356,9 @@ function renderTableUpdate(data) {
             badgeSkorHtml = `<span class="text-muted small">-</span>`;
         }
         
-        // PERBAIKAN INDEX: Catatan bergeser ke 36 (AK)
         let tr = `
             <tr class="border-bottom" style="cursor: pointer;" onclick="showDetailArtikel('${row[1]}')" title="Klik untuk lihat detail">
-                <td class="text-center text-muted">${index + 1}</td>
+                <td class="text-center text-muted">${actualRowNumber}</td>
                 <td><span class="text-dark fw-semibold" style="font-size: 0.85rem;">${row[4]}</span></td>
                 <td>
                     <div class="fw-bold text-dark mb-1" style="font-size: 0.85rem;"><i class="bi bi-journal-text me-1"></i>${row[8] || "-"}</div>
@@ -350,7 +372,69 @@ function renderTableUpdate(data) {
         `;
         tbody.insertAdjacentHTML('beforeend', tr);
     });
+
+    renderPaginationControls();
 }
+
+// Fungsi baru untuk merender tombol prev, angka, next
+function renderPaginationControls() {
+    const totalPages = Math.ceil(currentFilteredData.length / rowsPerPage);
+    const paginationEl = document.getElementById("paginationControls");
+    const infoEl = document.getElementById("paginationInfo");
+
+    // Update Info Text (Misal: "Menampilkan 1-10 dari 50 data")
+    const startCount = ((currentPage - 1) * rowsPerPage) + 1;
+    const endCount = Math.min(currentPage * rowsPerPage, currentFilteredData.length);
+    infoEl.innerHTML = `Menampilkan <span class="fw-bold">${startCount}-${endCount}</span> dari <span class="fw-bold">${currentFilteredData.length}</span> data`;
+
+    paginationEl.innerHTML = "";
+
+    // Jika hanya 1 halaman, sembunyikan kontrol paginasi
+    if (totalPages <= 1) return;
+
+    // Tombol Previous
+    const isPrevDisabled = currentPage === 1 ? "disabled" : "";
+    let html = `<li class="page-item ${isPrevDisabled}">
+                    <a class="page-link shadow-sm" href="javascript:void(0)" onclick="changePage(${currentPage - 1})"><i class="bi bi-chevron-left"></i></a>
+                </li>`;
+
+    // Tombol Angka Halaman
+    // Logika agar tidak semua angka muncul (misal cuma tampil 1, 2, 3 ... 10)
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+
+    if (startPage > 1) {
+        html += `<li class="page-item"><a class="page-link shadow-sm" href="javascript:void(0)" onclick="changePage(1)">1</a></li>`;
+        if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link border-0">...</span></li>`;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        const activeClass = i === currentPage ? "active" : "";
+        html += `<li class="page-item ${activeClass}"><a class="page-link shadow-sm" href="javascript:void(0)" onclick="changePage(${i})">${i}</a></li>`;
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link border-0">...</span></li>`;
+        html += `<li class="page-item"><a class="page-link shadow-sm" href="javascript:void(0)" onclick="changePage(${totalPages})">${totalPages}</a></li>`;
+    }
+
+    // Tombol Next
+    const isNextDisabled = currentPage === totalPages ? "disabled" : "";
+    html += `<li class="page-item ${isNextDisabled}">
+                <a class="page-link shadow-sm" href="javascript:void(0)" onclick="changePage(${currentPage + 1})"><i class="bi bi-chevron-right"></i></a>
+             </li>`;
+
+    paginationEl.innerHTML = html;
+}
+
+// Fungsi global untuk menerima klik dari tombol halaman
+window.changePage = function(pageNumber) {
+    const totalPages = Math.ceil(currentFilteredData.length / rowsPerPage);
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+        currentPage = pageNumber;
+        displayTablePage(currentPage);
+    }
+};
 
 // Menampilkan Modal Detail (Global)
 window.showDetailArtikel = function(recordId) {
