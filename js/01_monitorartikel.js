@@ -41,12 +41,23 @@
         setupEventListeners();
     }
 
+    let currentMonitorPage = 1;
+    let cardsPerPage = 5;
+    let currentFilteredMonitorData = [];
+
     function setupEventListeners() {
         const btnRefresh = document.getElementById("btnRefreshArtikel");
         if(btnRefresh) btnRefresh.addEventListener("click", fetchArtikelData);
 
         const filterTahun = document.getElementById("filterTahunArtikel");
-        if(filterTahun) filterTahun.addEventListener("change", () => renderArtikelCards(masterArtikelData));
+        if(filterTahun) filterTahun.addEventListener("change", () => { currentMonitorPage = 1; renderArtikelCards(masterArtikelData); });
+
+        // LISTENER BARU: Search dan Sort
+        const searchInput = document.getElementById("searchArtikelData");
+        if(searchInput) searchInput.addEventListener("keyup", () => { currentMonitorPage = 1; renderArtikelCards(masterArtikelData); });
+        
+        const sortSelect = document.getElementById("sortArtikelData");
+        if(sortSelect) sortSelect.addEventListener("change", () => { currentMonitorPage = 1; renderArtikelCards(masterArtikelData); });
 
         const ddlSubmit = document.getElementById("rencanaSubmit");
         if(ddlSubmit) ddlSubmit.addEventListener("change", function() { updateDropdownOptions(this.value); });
@@ -62,7 +73,19 @@
         
         document.getElementById("btnSimpanArtikel")?.addEventListener("click", handleSaveArtikel);
 
-        // PERBAIKAN: Gunakan ASYNC pada event klik tombol "Tambah Data"
+        const limitSelect = document.getElementById("limitPerPage");
+        if(limitSelect) {
+            limitSelect.addEventListener("change", function() {
+                if (this.value === "semua") {
+                    cardsPerPage = currentFilteredMonitorData.length || 9999;
+                } else {
+                    cardsPerPage = parseInt(this.value, 10);
+                }
+                currentMonitorPage = 1; // Kembali ke halaman 1 tiap ganti limit
+                displayMonitorPage(currentMonitorPage);
+            });
+        }
+
         document.querySelector('[data-bs-target="#modalFormArtikel"]')?.addEventListener("click", async () => {
             document.getElementById("formArtikel").reset();
             document.getElementById("recordId").value = ""; 
@@ -73,11 +96,10 @@
             document.getElementById("emptyExtAuthorText").classList.remove("d-none");
             document.getElementById("extHeader").classList.add("d-none");
             
-            // ANTI RACE-CONDITION: Jika data dosen belum siap, tunggu dulu!
             if (masterDosenList.length === 0) {
-                document.getElementById("authorContainer").innerHTML = `<div class="text-center text-primary small py-2"><div class="spinner-border spinner-border-sm me-1"></div> Menyiapkan data penulis...</div>`;
+                document.getElementById("authorContainer").innerHTML = `<div class="text-center text-primary small py-2"><div class="spinner-border spinner-border-sm me-1"></div> Menyiapkan data...</div>`;
                 await fetchDosenList();
-                document.getElementById("authorContainer").innerHTML = ""; // Bersihkan loading
+                document.getElementById("authorContainer").innerHTML = "";
             }
 
             createAuthorRow(true); 
@@ -451,32 +473,92 @@
     function renderArtikelCards(data) {
         const container = document.getElementById("listArtikelData");
         const filterTahunEl = document.getElementById("filterTahunArtikel");
+        const searchInputEl = document.getElementById("searchArtikelData");
+        const sortSelectEl = document.getElementById("sortArtikelData");
+        
         if (!container || !filterTahunEl) return; 
         
         const filterTahun = filterTahunEl.value;
+        const valSearch = searchInputEl ? searchInputEl.value.toLowerCase().trim() : "";
+        const valSort = sortSelectEl ? sortSelectEl.value : "terbaru";
+        
         const activeUser = JSON.parse(sessionStorage.getItem("user"));
-        container.innerHTML = "";
 
-        let filteredData = data.filter(row => {
+        // 1. FILTERING
+        currentFilteredMonitorData = data.filter(row => {
             if (row[13] === "Published") return false;
             if (filterTahun !== "Semua" && String(row[5]) !== filterTahun) return false;
             
+            // Search Judul & Jurnal Target
+            if (valSearch !== "") {
+                const judul = String(row[4]).toLowerCase();
+                const jurnal = String(row[8]).toLowerCase();
+                if (!judul.includes(valSearch) && !jurnal.includes(valSearch)) return false;
+            }
+
             const isAdminExec = ["Admin", "Kadep", "Sekdep"].includes(activeUser.role);
             const isPIC = row[3] === activeUser.email; 
             const isAuthor = String(row[9]).includes(activeUser.kode); 
-            
             return isAdminExec || isPIC || isAuthor; 
         });
 
+        // 2. SORTING
+        currentFilteredMonitorData.sort((a, b) => {
+            if (valSort === "terbaru") {
+                // Default: reverse ID / No Urut
+                return b[0] - a[0]; 
+            } 
+            else if (valSort === "tipe") {
+                // Jurnal -> Prosiding -> Buku
+                const tipeOrder = { "Jurnal": 1, "Prosiding": 2, "Buku": 3 };
+                return (tipeOrder[a[6]] || 99) - (tipeOrder[b[6]] || 99);
+            } 
+            else if (valSort === "indeks") {
+                // Q1-Q4 -> Non-Q -> Sinta1-Sinta6 -> Internasional -> Nasional
+                const indexOrder = ['Q1', 'Q2', 'Q3', 'Q4', 'Non-Q', 'Sinta 1', 'Sinta 2', 'Sinta 3', 'Sinta 4', 'Sinta 5', 'Sinta 6', 'Internasional', 'Nasional', 'Buku Referensi', 'Buku Ajar', 'Buku Monograf'];
+                let idxA = indexOrder.indexOf(String(a[7]).split(" - ")[0]);
+                let idxB = indexOrder.indexOf(String(b[7]).split(" - ")[0]);
+                if(idxA === -1) idxA = 99; if(idxB === -1) idxB = 99;
+                return idxA - idxB;
+            } 
+            else if (valSort === "status") {
+                // Draft ke Published
+                const statusOrder = ["Draft", "Draft Ready", "Submitted", "On Review", "On Review Round 1", "Revision", "Revision Round 1", "Revision Round 1 Submitted", "On Review Round 2", "Revision Round 2", "Revision Round 2 Submitted", "Accepted", "Presented"];
+                let sA = statusOrder.indexOf(a[13]); let sB = statusOrder.indexOf(b[13]);
+                if(sA === -1) sA = 99; if(sB === -1) sB = 99;
+                return sA - sB;
+            }
+            return 0;
+        });
+
+        // 3. RENDER (Panggil fungsi Pagination)
+        displayMonitorPage(currentMonitorPage);
+    }
+
+    // FUNGSI DISPLAY PER HALAMAN
+    function displayMonitorPage(page) {
+        const container = document.getElementById("listArtikelData");
         const emptyState = document.getElementById("emptyArtikelState");
-        if (filteredData.length === 0) {
-            if(emptyState) emptyState.classList.remove("d-none");
+        const paginationContainer = document.getElementById("paginationContainerArtikel");
+        
+        container.innerHTML = "";
+
+        if (currentFilteredMonitorData.length === 0) {
+            emptyState.classList.remove("d-none");
+            paginationContainer.classList.add("d-none");
             return;
         }
 
-        if(emptyState) emptyState.classList.add("d-none");
+        emptyState.classList.add("d-none");
+        paginationContainer.classList.remove("d-none");
 
-        filteredData.reverse().forEach(row => {
+        const startIndex = (page - 1) * cardsPerPage;
+        const endIndex = startIndex + cardsPerPage;
+        const pageData = currentFilteredMonitorData.slice(startIndex, endIndex);
+
+        const activeUser = JSON.parse(sessionStorage.getItem("user"));
+
+        pageData.forEach(row => {
             const type = row[6];
             const steps = type === "Jurnal" ? timelineJurnal : timelineProsiding;
             const currentStatus = row[13]; 
@@ -565,7 +647,73 @@
             `;
             container.insertAdjacentHTML('beforeend', cardHtml);
         });
+
+        renderMonitorPaginationControls();
     }
+
+    function renderMonitorPaginationControls() {
+        const totalData = currentFilteredMonitorData.length;
+        const totalPages = Math.ceil(totalData / cardsPerPage);
+        const paginationEl = document.getElementById("paginationControlsArtikel");
+        const infoEl = document.getElementById("paginationInfoArtikel");
+
+        if (totalData === 0) {
+            infoEl.innerHTML = "Tidak ada data";
+            paginationEl.innerHTML = "";
+            return;
+        }
+
+        const startCount = ((currentMonitorPage - 1) * cardsPerPage) + 1;
+        const endCount = Math.min(currentMonitorPage * cardsPerPage, totalData);
+        
+        // Cek jika mode "Semua"
+        if (cardsPerPage >= totalData) {
+            infoEl.innerHTML = `Menampilkan <span class="fw-bold text-primary">Semua</span> dari <span class="fw-bold">${totalData}</span> Artikel`;
+        } else {
+            infoEl.innerHTML = `Menampilkan <span class="fw-bold text-primary">${startCount}-${endCount}</span> dari <span class="fw-bold">${totalData}</span> Artikel`;
+        }
+
+        paginationEl.innerHTML = "";
+        
+        // Sembunyikan navigasi angka jika hanya 1 halaman
+        if (totalPages <= 1) return;
+
+        const isPrevDisabled = currentMonitorPage === 1 ? "disabled" : "";
+        let html = `<li class="page-item ${isPrevDisabled}"><a class="page-link shadow-sm" href="javascript:void(0)" onclick="changeMonitorPage(${currentMonitorPage - 1})"><i class="bi bi-chevron-left"></i></a></li>`;
+
+        let startPage = Math.max(1, currentMonitorPage - 2);
+        let endPage = Math.min(totalPages, currentMonitorPage + 2);
+
+        if (startPage > 1) {
+            html += `<li class="page-item"><a class="page-link shadow-sm" href="javascript:void(0)" onclick="changeMonitorPage(1)">1</a></li>`;
+            if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link border-0">...</span></li>`;
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const activeClass = i === currentMonitorPage ? "active" : "";
+            html += `<li class="page-item ${activeClass}"><a class="page-link shadow-sm" href="javascript:void(0)" onclick="changeMonitorPage(${i})">${i}</a></li>`;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) html += `<li class="page-item disabled"><span class="page-link border-0">...</span></li>`;
+            html += `<li class="page-item"><a class="page-link shadow-sm" href="javascript:void(0)" onclick="changeMonitorPage(${totalPages})">${totalPages}</a></li>`;
+        }
+
+        const isNextDisabled = currentMonitorPage === totalPages ? "disabled" : "";
+        html += `<li class="page-item ${isNextDisabled}"><a class="page-link shadow-sm" href="javascript:void(0)" onclick="changeMonitorPage(${currentMonitorPage + 1})"><i class="bi bi-chevron-right"></i></a></li>`;
+
+        paginationEl.innerHTML = html;
+    }
+
+    window.changeMonitorPage = function(pageNumber) {
+        const totalPages = Math.ceil(currentFilteredMonitorData.length / cardsPerPage);
+        if (pageNumber >= 1 && pageNumber <= totalPages) {
+            currentMonitorPage = pageNumber;
+            displayMonitorPage(currentMonitorPage);
+            // Auto scroll sedikit ke atas agar user nyaman melihat daftar baru
+            document.getElementById("containerListArtikel").scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
 
     initMonitorArtikel();
 })();
