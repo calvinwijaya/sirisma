@@ -87,6 +87,8 @@ function initDashboardLayout() {
     // Event Listeners
     document.getElementById("filterBulan").addEventListener("change", processAndRenderDashboard);
     document.getElementById("filterTahun").addEventListener("change", processAndRenderDashboard);
+    const filterJenis = document.getElementById("filterJenisArtikel");
+    if(filterJenis) filterJenis.addEventListener("change", processAndRenderDashboard);
     
     if(isExecutive) {
         document.getElementById("filterKbk").addEventListener("change", processAndRenderDashboard);
@@ -147,6 +149,7 @@ function processAndRenderDashboard() {
 
     const valBulan = document.getElementById("filterBulan").value; 
     const valTahun = document.getElementById("filterTahun").value;
+    const valJenis = document.getElementById("filterJenisArtikel") ? document.getElementById("filterJenisArtikel").value : "";
     const valKbk = isExecutive ? document.getElementById("filterKbk").value : "";
     const valHomebase = isExecutive ? document.getElementById("filterHomebase").value : "";
     const valSearch = isExecutive ? document.getElementById("filterSearchDosen").value.toLowerCase() : "";
@@ -165,7 +168,8 @@ function processAndRenderDashboard() {
     let statusCounts = {};
     let authorCounts = {};
     let indexCounts = {};
-    let mhsCounts = { "Melibatkan Mhs.": 0, "Dosen Mandiri": 0 };
+    // let mhsCounts = { "Melibatkan Mhs.": 0, "Dosen Mandiri": 0 };
+    let mhsCounts = {};
 
     let trendCounts = { 
         "Jurnal": { "01":0, "02":0, "03":0, "04":0, "05":0, "06":0, "07":0, "08":0, "09":0, "10":0, "11":0, "12":0 },
@@ -187,6 +191,14 @@ function processAndRenderDashboard() {
 
         if (valBulan !== "" && rowBulan !== valBulan) return false;
         if (valTahun !== "" && rowTahun !== valTahun) return false;
+
+        const rowSumber = row[38] ? String(row[38]).trim() : "SIRISMA";
+        if (valJenis !== "") {
+            // Jika filter memilih "SIPINTAS" (untuk semua endorse lainnya)
+            if (valJenis === "SIPINTAS" && !rowSumber.startsWith("SIPINTAS")) return false;
+            // Jika filter memilih opsi spesifik (SIRISMA, SIPINTAS/ Skripsi, dll)
+            else if (valJenis !== "SIPINTAS" && !rowSumber.includes(valJenis)) return false;
+        }
 
         const authorCodes = String(row[9]).replace(/\*/g, "").split(", ");
 
@@ -265,8 +277,25 @@ function processAndRenderDashboard() {
             });
         }
 
-        if (row[10] && String(row[10]).trim() !== "") mhsCounts["Melibatkan Mhs."]++;
-        else mhsCounts["Dosen Mandiri"]++;
+        // PERBAIKAN: Logika rinci untuk Pie Chart Kolaborasi Mahasiswa
+        if (row[10] && String(row[10]).trim() !== "") {
+            // Jika ada Mahasiswa, cek sumber datanya
+            const rowSumber = row[38] ? String(row[38]).trim() : "SIRISMA";
+            let kategoriKolaborasi = rowSumber; 
+            
+            // Format agar labelnya cantik di dalam Pie Chart
+            if (rowSumber.includes("Skripsi")) kategoriKolaborasi = "Endorse Skripsi";
+            // else if (rowSumber.includes("Tesis")) kategoriKolaborasi = "Endorse Tesis";
+            // else if (rowSumber.includes("Disertasi")) kategoriKolaborasi = "Endorse Disertasi";
+            // else if (rowSumber.includes("PRGG")) kategoriKolaborasi = "Endorse PRGG";
+            // else if (rowSumber.includes("Praktik")) kategoriKolaborasi = "Endorse KP";
+            // else if (rowSumber.includes("SIPINTAS")) kategoriKolaborasi = "Endorse Lainnya";
+            // else kategoriKolaborasi = "Kolab. Biasa (SIRISMA)"; // Input manual dari SIRISMA
+
+            mhsCounts[kategoriKolaborasi] = (mhsCounts[kategoriKolaborasi] || 0) + 1;
+        } else {
+            mhsCounts["Tanpa Mahasiswa"] = (mhsCounts["Tanpa Mahasiswa"] || 0) + 1;
+        }
 
         return true;
     });
@@ -687,7 +716,8 @@ function renderChartMahasiswa(dataObj) {
             labels: Object.keys(dataObj),
             datasets: [{
                 data: Object.values(dataObj),
-                backgroundColor: ['#20c997', '#adb5bd'] 
+                // PERBAIKAN: Palet warna yang diperluas untuk banyak kategori
+                backgroundColor: ['#adb5bd', '#0dcaf0', '#fd7e14', '#e83e8c', '#6f42c1', '#198754', '#ffc107', '#0d6efd'] 
             }]
         },
         options: { 
