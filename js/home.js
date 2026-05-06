@@ -181,11 +181,21 @@ function processAndRenderDashboard() {
         const tglInputStr = String(row[2]); 
         let rowBulan = "", rowTahun = "";
         
-        if (tglInputStr && tglInputStr !== "") {
-            const dateParts = tglInputStr.split(" ")[0].split("/"); 
-            if(dateParts.length === 3) {
-                rowBulan = dateParts[1];
-                rowTahun = dateParts[2];
+        if (tglInputStr && tglInputStr !== "" && tglInputStr !== "undefined" && tglInputStr !== "-") {
+            // Deteksi cerdas: Jika mengandung "T", ekstrak tahunnya menggunakan fungsi Date
+            if (tglInputStr.includes("T")) {
+                const dt = new Date(tglInputStr);
+                if (!isNaN(dt.getTime())) {
+                    rowBulan = String(dt.getMonth() + 1).padStart(2, '0');
+                    rowTahun = String(dt.getFullYear());
+                }
+            } else {
+                // Jika format biasa (menggunakan garis miring /)
+                const dateParts = tglInputStr.split(" ")[0].split("/"); 
+                if(dateParts.length === 3) {
+                    rowBulan = dateParts[1];
+                    rowTahun = dateParts[2];
+                }
             }
         }
 
@@ -285,7 +295,7 @@ function processAndRenderDashboard() {
             
             // Format agar labelnya cantik di dalam Pie Chart
             if (rowSumber.includes("Skripsi")) kategoriKolaborasi = "Endorse Skripsi";
-            // else if (rowSumber.includes("Tesis")) kategoriKolaborasi = "Endorse Tesis";
+            else if (rowSumber.includes("Tesis")) kategoriKolaborasi = "Endorse Tesis";
             // else if (rowSumber.includes("Disertasi")) kategoriKolaborasi = "Endorse Disertasi";
             // else if (rowSumber.includes("PRGG")) kategoriKolaborasi = "Endorse PRGG";
             // else if (rowSumber.includes("Praktik")) kategoriKolaborasi = "Endorse KP";

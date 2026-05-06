@@ -562,10 +562,30 @@
             const type = row[6];
             const steps = type === "Jurnal" ? timelineJurnal : timelineProsiding;
             const currentStatus = row[13]; 
-            const tglInput = row[2] ? String(row[2]).split(" ")[0] : "-";
+            
+            function formatDateStr(rawStr) {
+                if (!rawStr) return "-";
+                if (String(rawStr).includes("T")) {
+                    const dt = new Date(rawStr);
+                    // Pastikan valid Date
+                    if (!isNaN(dt.getTime())) {
+                        const d = String(dt.getDate()).padStart(2, '0');
+                        const m = String(dt.getMonth() + 1).padStart(2, '0');
+                        const y = dt.getFullYear();
+                        return `${d}/${m}/${y}`;
+                    }
+                }
+                return String(rawStr).split(" ")[0];
+            }
+
+            const tglInput = formatDateStr(row[2]);
             
             let tglUpdate = tglInput;
-            steps.forEach(s => { if(row[s.index]) tglUpdate = String(row[s.index]).split(" ")[0]; });
+            steps.forEach(s => { 
+                if(row[s.index]) {
+                    tglUpdate = formatDateStr(row[s.index]); 
+                }
+            });
 
             let typeColor = type === "Prosiding" ? "bg-success" : (type === "Buku" ? "bg-danger" : "bg-primary");
             let displayIndeks = row[7] || "Unknown";
@@ -628,7 +648,7 @@
                                         return steps.map((step, index) => {
                                             const isPassed = (row[step.index] !== "") || (index <= currentStatusIndex);
                                             const isCurrent = (index === currentStatusIndex);
-                                            const tglStep = row[step.index] ? String(row[step.index]).split(" ")[0] : "";
+                                            const tglStep = row[step.index] ? formatDateStr(row[step.index]) : "";
                                             
                                             return `
                                                 <div class="tracker-item ${isPassed ? 'active' : ''} ${isCurrent ? 'current' : ''}">
